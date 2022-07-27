@@ -81,9 +81,9 @@ data:{"hello":"world1"}
     "client_id": "1552106203776028672",
     "message_id": "bmn1pgxsyyryy",
     "group_name": "",
-    "Code": 10009,
-    "Msg": "发送消息体成功",
-    "Data": "{\"hello\":\"world1\"}"
+    "code": 10009,
+    "msg": "发送消息体成功",
+    "data": "{\"hello\":\"world1\"}"
 }
 ```
 
