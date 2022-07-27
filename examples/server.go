@@ -12,12 +12,13 @@ import (
 )
 
 func main() {
+	// 监听消息发送
+	go server.MessagePushListener()
+
 	// 启动websocket
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		conn := connect.NewConn(writer, request, nil)
-		conn.OnHandshake()
-		// 监听消息推送
-		conn.OnPush()
+		connect.NewConn(writer, request, writer.Header()).OnHandshake()
+		return
 	})
 
 	// 推送消息到单个客户端
@@ -81,7 +82,7 @@ func main() {
 	})
 	// 关闭连接
 	http.HandleFunc("/close", func(writer http.ResponseWriter, request *http.Request) {
-		connect.NewConn(writer, request, request.Header).OnClose()
+		connect.NewConn(writer, request, writer.Header()).OnClose()
 		return
 	})
 

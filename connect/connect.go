@@ -40,7 +40,6 @@ type ConnInterface interface {
 	OnHandshake() error // OnHandshake 握手
 	OnOpen() error      // OnOpen 连接
 	OnMessage() error   // OnMessage 接收消息
-	OnPush() error      // OnPush 发送消息
 	OnClose() error     // OnClose 关闭连接
 }
 
@@ -84,7 +83,7 @@ func (c *Connect) OnHandshake() error {
 	// 打开websocket 给客户端发送消息
 	c.OnOpen()
 	// 心跳检测
-	go server.HeartbeatListener()
+	server.HeartbeatListener()
 	return nil
 }
 
@@ -92,12 +91,12 @@ func (c *Connect) OnHandshake() error {
 func (c *Connect) OnOpen() error {
 	// 开启协程读取信息
 	c.OnMessage()
+
 	// 客户端连接事件
 	c._manager.ClientConnect <- &c._client
 
 	// 监听客户端连接或断连
-	go server.Run()
-
+	server.Run()
 	return nil
 }
 
@@ -120,12 +119,6 @@ func (c *Connect) OnMessage() error {
 			}
 		}
 	}()
-	return nil
-}
-
-// OnPush 监听消息推送
-func (c *Connect) OnPush() error {
-	go server.MessagePushListener()
 	return nil
 }
 

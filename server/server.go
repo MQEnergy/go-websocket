@@ -43,39 +43,41 @@ func init() {
 	ToClientMsgChan = make(chan clientInfo, 1000)
 }
 
-// Run 执行
+// Run 执行客户端连接处理
 func Run() {
-	for {
-		select {
-		case client := <-Manager.ClientConnect:
-			// 客户端连接处理
-			Manager.ClientConnectHandler(client)
+	go func() {
+		for {
+			select {
+			case client := <-Manager.ClientConnect:
+				// 客户端连接处理
+				Manager.ClientConnectHandler(client)
 
-		case disClient := <-Manager.ClientDisConnect:
-			// 客户端断连处理
-			Manager.ClientDisConnectHandler(disClient)
-			//// 客户端下线通知
-			marshal, _ := json.Marshal(map[string]string{
-				"clientId": disClient.ClientId,
-			})
-			data := string(marshal)
-			if len(disClient.GroupList) > 0 {
-				for _, groupName := range disClient.GroupList {
-					//发送下线通知
-					node, _ := snowflake.NewNode(1)
-					SendMessageToLocalGroup(&Sender{
-						SystemId:  disClient.SystemId,
-						ClientId:  disClient.ClientId,
-						MessageId: client.GenerateUuid(32, node),
-						GroupName: groupName,
-						Code:      code.ClientFailed,
-						Msg:       code.ClientFailed.Msg(),
-						Data:      &data,
-					})
+			case disClient := <-Manager.ClientDisConnect:
+				// 客户端断连处理
+				Manager.ClientDisConnectHandler(disClient)
+				//// 客户端下线通知
+				marshal, _ := json.Marshal(map[string]string{
+					"clientId": disClient.ClientId,
+				})
+				data := string(marshal)
+				if len(disClient.GroupList) > 0 {
+					for _, groupName := range disClient.GroupList {
+						//发送下线通知
+						node, _ := snowflake.NewNode(1)
+						SendMessageToLocalGroup(&Sender{
+							SystemId:  disClient.SystemId,
+							ClientId:  disClient.ClientId,
+							MessageId: client.GenerateUuid(32, node),
+							GroupName: groupName,
+							Code:      code.ClientFailed,
+							Msg:       code.ClientFailed.Msg(),
+							Data:      &data,
+						})
+					}
 				}
 			}
 		}
-	}
+	}()
 }
 
 // PushToClientMsgChan 发送消息体到通道
@@ -144,20 +146,22 @@ func MessagePushListener() {
 
 // HeartbeatListener 心跳监听
 func HeartbeatListener() {
-	ticker := time.NewTicker(heartbeatTimer)
-	defer ticker.Stop()
+	go func() {
+		ticker := time.NewTicker(heartbeatTimer)
+		defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			//发送心跳
-			allClient := Manager.GetAllClient()
-			for clientId, client := range allClient {
-				if err := client.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
-					Manager.ClientDisConnect <- client
-					log.WriteLog(client.SystemId, clientId, "", map[string]interface{}{"clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
+		for {
+			select {
+			case <-ticker.C:
+				//发送心跳
+				allClient := Manager.GetAllClient()
+				for clientId, client := range allClient {
+					if err := client.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
+						Manager.ClientDisConnect <- client
+						log.WriteLog(client.SystemId, clientId, "", map[string]interface{}{"clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
+					}
 				}
 			}
 		}
-	}
+	}()
 }
