@@ -24,10 +24,13 @@ func NewClient(clientId string, systemId string, conn *websocket.Conn) *Client {
 }
 
 // GenerateUuid 生成唯一ID
-func GenerateUuid(num int) string {
-	node, err := snowflake.NewNode(1)
-	if err != nil {
-		return ""
+func GenerateUuid(num int, node *snowflake.Node) string {
+	if node == nil {
+		var err error
+		node, err = snowflake.NewNode(1)
+		if err != nil {
+			return ""
+		}
 	}
 	id := node.Generate()
 	switch num {

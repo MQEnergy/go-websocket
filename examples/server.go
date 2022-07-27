@@ -7,6 +7,7 @@ import (
 	"github.com/MQEnergy/go-websocket/connect"
 	"github.com/MQEnergy/go-websocket/server"
 	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/bwmarrin/snowflake"
 	"net/http"
 )
 
@@ -24,7 +25,7 @@ func main() {
 		clientId := request.FormValue("client_id")
 		systemId := request.FormValue("system_id")
 		data := request.FormValue("data")
-		messageId := client.GenerateUuid(32)
+		messageId := client.GenerateUuid(32, nil)
 		sender := &server.Sender{
 			ClientId:  clientId,
 			SystemId:  systemId,
@@ -51,8 +52,9 @@ func main() {
 			return
 		}
 		var senderList = make([]*server.Sender, 0)
+		node, _ := snowflake.NewNode(1)
 		for _, clientId := range clientIdList {
-			messageId := client.GenerateUuid(32)
+			messageId := client.GenerateUuid(32, node)
 			sender := &server.Sender{
 				ClientId:  clientId,
 				SystemId:  systemId,
@@ -79,8 +81,8 @@ func main() {
 	})
 	// 关闭连接
 	http.HandleFunc("/close", func(writer http.ResponseWriter, request *http.Request) {
-		conn := connect.NewConn(writer, request, nil)
-		conn.OnClose()
+		connect.NewConn(writer, request, request.Header).OnClose()
+		return
 	})
 
 	fmt.Println("服务器启动成功，端口号 :9991 \n")

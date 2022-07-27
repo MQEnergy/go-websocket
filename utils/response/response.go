@@ -8,9 +8,9 @@ import (
 
 // responseData 响应结构体
 type responseData struct {
-	SystemId  string      `json:"systemId"`
-	ClientId  string      `json:"clientId"`
-	MessageId string      `json:"messageId"`
+	SystemId  string      `json:"system_id"`
+	ClientId  string      `json:"client_id"`
+	MessageId string      `json:"message_id"`
 	Code      code.Code   `json:"code"`
 	Msg       string      `json:"msg"`
 	Data      interface{} `json:"data"`

@@ -33,8 +33,93 @@ go get -u github.com/MQEnergy/go-websocket
 go mod tidy
 ```
 ## 运行example
+### 一、开启服务
 ```go
 go run examples/server.go
+```
+```
+服务器启动成功，端口号 :9991 
+```
+代表启动成功
+
+### 二、测试
+#### 1、连接websocket
+system_id为系统ID（测试随机填写）
+
+请求
+```
+ws://127.0.0.1:9991/ws?system_id=123
+```
+返回
+```
+{
+    "system_id": "123",
+    "client_id": "1552131603575083008",
+    "message_id": "bmn18osnryryy",
+    "code": 10009,
+    "msg": "发送消息体成功",
+    "data": "{\"hello\":\"world1\"}",
+    "params": null
+}
+```
+
+#### 2、推送单个客户端 
+请求 post
+```
+http://127.0.0.1:9991/push_to_client
+```
+请求参数
+```
+client_id:1552131603575083008
+system_id:123
+data:{"hello":"world1"}
+```
+返回
+```
+{
+    "system_id": "123",
+    "client_id": "1552106203776028672",
+    "message_id": "bmn1pgxsyyryy",
+    "group_name": "",
+    "Code": 10009,
+    "Msg": "发送消息体成功",
+    "Data": "{\"hello\":\"world1\"}"
+}
+```
+
+#### 3、推送多个客户端 
+请求 post
+```
+http://127.0.0.1:9991/push_to_clients
+```
+请求参数
+```
+client_ids:["1552131603575083008","1552131575854927872"]
+system_id:123
+data:{"hello":"world1"}
+```
+返回
+```
+[
+    {
+        "system_id": "123",
+        "client_id": "1552131603575083008",
+        "message_id": "bmnwpcepyyryy",
+        "group_name": "",
+        "code": 10009,
+        "msg": "发送消息体成功",
+        "data": "{\"hello\":\"world1\"}"
+    },
+    {
+        "system_id": "123",
+        "client_id": "1552131575854927872",
+        "message_id": "bmnwpcepyyryb",
+        "group_name": "",
+        "code": 10009,
+        "msg": "发送消息体成功",
+        "data": "{\"hello\":\"world1\"}"
+    }
+]
 ```
 
 ## 其他

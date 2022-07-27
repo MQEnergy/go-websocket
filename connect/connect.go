@@ -76,7 +76,7 @@ func (c *Connect) OnHandshake() error {
 		return errors.New(code.Failed.Msg())
 	}
 	// 生成客户端ID
-	clientId := client.GenerateUuid(0)
+	clientId := client.GenerateUuid(0, nil)
 	// 实例化新客户端连接
 	c._client = *client.NewClient(clientId, systemId, conn)
 	// 添加系统ID和客户端到列表

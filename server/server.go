@@ -6,6 +6,7 @@ import (
 	"github.com/MQEnergy/go-websocket/utils/code"
 	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
+	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/websocket"
 	"time"
 )
@@ -22,13 +23,13 @@ type (
 
 	// Sender 发送者结构体
 	Sender struct {
-		SystemId  string
-		ClientId  string
-		MessageId string
-		GroupName string
-		Code      code.Code
-		Msg       string
-		Data      *string
+		SystemId  string    `json:"system_id"`
+		ClientId  string    `json:"client_id"`
+		MessageId string    `json:"message_id"`
+		GroupName string    `json:"group_name"`
+		Code      code.Code `json:"code"`
+		Msg       string    `json:"msg"`
+		Data      *string   `json:"data"`
 	}
 )
 
@@ -61,10 +62,11 @@ func Run() {
 			if len(disClient.GroupList) > 0 {
 				for _, groupName := range disClient.GroupList {
 					//发送下线通知
+					node, _ := snowflake.NewNode(1)
 					SendMessageToLocalGroup(&Sender{
 						SystemId:  disClient.SystemId,
 						ClientId:  disClient.ClientId,
-						MessageId: client.GenerateUuid(32),
+						MessageId: client.GenerateUuid(32, node),
 						GroupName: groupName,
 						Code:      code.ClientFailed,
 						Msg:       code.ClientFailed.Msg(),
