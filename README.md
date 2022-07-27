@@ -1,5 +1,5 @@
 # go-websocket
-websocket库
+基于gorilla/websocket封装的websocket库，实现基于系统纬度的消息推送，基于群组纬度的消息推送，基于单个和多个客户端消息推送。
 
 ## 目录结构
 ```
