@@ -22,7 +22,7 @@
     ├── log
     │   └── log.go            // log
     └── response
-        └── response.go             // websocket返回给客户端响应
+        └── response.go       // websocket返回给客户端响应
 ```
 ## 在项目中安装使用
 ```go
