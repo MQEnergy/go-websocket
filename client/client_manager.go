@@ -39,7 +39,7 @@ func (m *Manager) ClientConnectHandler(client *Client) {
 	// 发送给客户端连接成功
 	if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, "", code.Success, code.Success.Msg(), "", ""); err != nil {
 		// 写日志
-		log.WriteLog(client.SystemId, client.ClientId, map[string]string{"err": err.Error()}, code.ClientFailed, code.ClientFailed.Msg(), 4)
+		log.WriteLog(client.SystemId, client.ClientId, "", map[string]string{"err": err.Error()}, code.ClientFailed, code.ClientFailed.Msg(), 4)
 		m.ClientDisConnect <- client
 	}
 }
@@ -51,7 +51,7 @@ func (m *Manager) ClientDisConnectHandler(client *Client) {
 	// 删除客户端
 	m.RemoveAllClient(client)
 	// 日志记录
-	log.WriteLog(client.SystemId, client.ClientId, "data", code.ClientFailed, code.ClientFailed.Msg(), 4)
+	log.WriteLog(client.SystemId, client.ClientId, "", "data", code.ClientFailed, code.ClientFailed.Msg(), 4)
 	client = nil
 }
 
@@ -198,8 +198,7 @@ func (m *Manager) CloseClient(clientId, systemId string) error {
 			return err
 		}
 		m.ClientDisConnect <- conn
-		log.WriteLog(conn.SystemId, conn.ClientId, "", code.ClientFailed, code.ClientFailed.Msg(), 4)
 	}
-	log.WriteLog(conn.SystemId, conn.ClientId, "", code.ClientFailed, code.ClientCloseSuccess.Msg(), 4)
+	log.WriteLog(conn.SystemId, conn.ClientId, "", "", code.ClientFailed, code.ClientCloseSuccess.Msg(), 4)
 	return nil
 }

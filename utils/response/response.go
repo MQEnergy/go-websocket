@@ -19,7 +19,7 @@ type responseData struct {
 
 // WsJson 返回给客户端的信息
 func WsJson(conn *websocket.Conn, systemId, clientId, messageId string, code code.Code, message string, data, params interface{}) error {
-	log.WriteLog(systemId, clientId, data, code, message, 4)
+	log.WriteLog(systemId, clientId, messageId, data, code, message, 4)
 	return conn.WriteJSON(responseData{
 		SystemId:  systemId,
 		ClientId:  clientId,

@@ -59,7 +59,7 @@ func (c *Connect) OnHandshake() error {
 	// http服务升级为websocket协议
 	conn, err := upgrader.Upgrade(c.writer, c.request, c.header)
 	if err != nil {
-		log.WriteLog(c._client.SystemId, c._client.ClientId, map[string]string{"err": err.Error()}, code.ReadMsgErr, code.ClientFailed.Msg(), 4)
+		log.WriteLog(c._client.SystemId, c._client.ClientId, "", map[string]string{"err": err.Error()}, code.ReadMsgErr, code.ClientFailed.Msg(), 4)
 		return err
 	}
 	conn.SetReadLimit(maxMessageSize)
@@ -111,7 +111,7 @@ func (c *Connect) OnMessage() error {
 					websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) {
 					c._manager.ClientDisConnect <- &c._client
 				} else {
-					log.WriteLog(c._client.SystemId, c._client.ClientId, "", code.ReadMsgErr, code.ReadMsgErr.Msg()+" err: "+err.Error(), 4)
+					log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ReadMsgErr, code.ReadMsgErr.Msg()+" err: "+err.Error(), 4)
 				}
 				return
 			} else {

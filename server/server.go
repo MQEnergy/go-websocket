@@ -122,7 +122,6 @@ func SendMessageToLocalSystem(sender *Sender) {
 
 // SendMessageToClient 发送消息给客户端
 func SendMessageToClient(sender *Sender) {
-	log.WriteLog(sender.SystemId, sender.ClientId, sender.Data, sender.Code, sender.Msg, 4)
 	PushToClientMsgChan(sender.ClientId, sender.MessageId, sender.Code, sender.Msg, sender.Data)
 }
 
@@ -131,12 +130,12 @@ func MessagePushListener() {
 	for {
 		clientInfo := <-ToClientMsgChan
 		if client, err := Manager.GetClientByList(clientInfo.ClientId); err == nil && client != nil {
-			if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Code, clientInfo.Msg, clientInfo.Data, nil); err != nil {
+			if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Code, clientInfo.Msg, *clientInfo.Data, nil); err != nil {
 				Manager.ClientDisConnect <- client
-				log.WriteLog(client.SystemId, client.ClientId, clientInfo, code.ClientNotExist, "客户端异常离线 "+err.Error(), 4)
+				log.WriteLog(client.SystemId, client.ClientId, clientInfo.MessageId, *clientInfo.Data, code.ClientNotExist, "客户端异常离线 "+err.Error(), 4)
 			}
 		} else {
-			log.WriteLog("", clientInfo.ClientId, clientInfo, code.ClientNotExist, code.ClientNotExist.Msg(), 4)
+			log.WriteLog("", clientInfo.ClientId, clientInfo.MessageId, *clientInfo.Data, code.ClientNotExist, code.ClientNotExist.Msg(), 4)
 		}
 	}
 }
@@ -154,7 +153,7 @@ func HeartbeatListener() {
 			for clientId, client := range allClient {
 				if err := client.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
 					Manager.ClientDisConnect <- client
-					log.WriteLog(client.SystemId, client.ClientId, map[string]interface{}{"clientId": clientId, "clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
+					log.WriteLog(client.SystemId, clientId, "", map[string]interface{}{"clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
 				}
 			}
 		}
