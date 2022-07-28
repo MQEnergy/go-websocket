@@ -122,6 +122,54 @@ data:{"hello":"world1"}
 ]
 ```
 
+#### 4、绑定的群组
+请求 post
+```
+http://127.0.0.1:9991/bind_to_group
+```
+请求参数
+```
+group_name:lyky
+client_id:1552484644530688000
+system_id:123
+```
+返回
+```
+{
+    "system_id": "123",
+    "client_id": "1552484655138082816",
+    "message_id": "bmnhes59ayryy",
+    "group_name": "lyky",
+    "code": 10012,
+    "msg": "客户端id：1552484644530688000 绑定群组成功",
+    "data": null
+}
+```
+
+#### 5、推送到群组
+请求 post
+```
+http://127.0.0.1:9991/push_to_group
+```
+请求参数
+```
+system_id:123
+group_name:lyky
+data:{"hello":"world1111"}
+```
+返回
+```
+{
+    "system_id": "123",
+    "client_id": "1552484655138082816",
+    "message_id": "bmnhjrg8wyryy",
+    "group_name": "lyky",
+    "code": 10009,
+    "msg": "发送消息体成功",
+    "data": "{\"hello\":\"world1111\"}"
+}
+```
+
 ## 其他
 ### client_manager.go方法和函数
 ```

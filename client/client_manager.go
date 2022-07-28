@@ -70,39 +70,32 @@ func (m *Manager) SetSystemClientToList(client *Client) {
 }
 
 // SetClientToGroupList 添加客户端到分组
-func (m *Manager) SetClientToGroupList(groupName string, client *Client) {
+func (m *Manager) SetClientToGroupList(groupName string, client *Client) error {
 	//判断之前是否有添加过
 	for _, groupValue := range client.GroupList {
-		if groupValue == groupName {
-			return
+		if groupValue != groupName {
+			// 组名添加
+			client.GroupList = append(client.GroupList, groupName)
 		}
 	}
-	// 为属性添加分组信息
 	groupKey := client.SystemId + ":" + groupName
+	// 判断客户端是否已添加至分组
+	flag := true
+	groupClientList := m.GetGroupClientList(groupKey)
+	for _, clientId := range groupClientList {
+		if clientId == client.ClientId {
+			// 群组中存在当前客户端
+			flag = false
+			break
+		}
+	}
+	if !flag {
+		return errors.New("请勿重复添加到同一群组")
+	}
 	m.GroupListLock.Lock()
 	defer m.GroupListLock.Unlock()
 	m.GroupList[groupKey] = append(m.GroupList[groupKey], client.ClientId)
-
-	// 组名添加
-	client.GroupList = append(client.GroupList, groupName)
-
-	// 发送信息到群组
-	//marshal, _ := json.Marshal(map[string]string{
-	//	"clientId": client.ClientId,
-	//	"systemId": client.SystemId,
-	//})
-	//data := string(marshal)
-	//
-	////发送系统通知
-	//server.SendMessageToLocalGroup(&server.Sender{
-	//	SystemId:  client.SystemId,
-	//	ClientId:  client.ClientId,
-	//	MessageId: GenerateUuid(32),
-	//	GroupName: groupName,
-	//	Code:      code.Success,
-	//	Msg:       "客户端连接成功",
-	//	Data:      &data,
-	//})
+	return nil
 }
 
 // GetAllClient 获取所有的客户端

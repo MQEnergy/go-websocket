@@ -9,6 +9,7 @@ import (
 	"github.com/MQEnergy/go-websocket/utils/code"
 	"github.com/bwmarrin/snowflake"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -62,7 +63,7 @@ func main() {
 				MessageId: messageId,
 				Code:      code.SendMsgSuccess,
 				Msg:       code.SendMsgSuccess.Msg(),
-				Data:      &data,
+				Data:      data,
 			}
 			server.SendMessageToClient(sender)
 			senderList = append(senderList, sender)
@@ -74,11 +75,64 @@ func main() {
 	})
 	// 绑定到群组
 	http.HandleFunc("/bind_to_group", func(writer http.ResponseWriter, request *http.Request) {
+		groupName := request.FormValue("group_name")
+		clientId := request.FormValue("client_id")
+		systemId := request.FormValue("system_id")
 
+		// 绑定操作
+		if err := server.Manager.SetClientToGroupList(groupName, &client.Client{ClientId: clientId, SystemId: systemId}); err != nil {
+			msg, _ := json.Marshal(map[string]string{
+				"msg": err.Error(),
+			})
+			writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+			writer.Write(msg)
+			return
+		}
+
+		// 发送信息到群组
+		sender := &server.Sender{
+			SystemId:  systemId,
+			ClientId:  clientId,
+			MessageId: client.GenerateUuid(32, nil),
+			GroupName: groupName,
+			Code:      code.BindGroupSuccess,
+			Msg:       "客户端id：" + clientId + " " + code.BindGroupSuccess.Msg(),
+			Data:      nil,
+		}
+		//发送系统通知
+		server.SendMessageToLocalGroup(sender)
+
+		// 返回
+		msg, _ := json.Marshal(sender)
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		writer.Write(msg)
+		return
 	})
 	// 推送消息到群组
 	http.HandleFunc("/push_to_group", func(writer http.ResponseWriter, request *http.Request) {
+		systemId := request.FormValue("system_id")
+		groupName := request.FormValue("group_name")
+		data := request.FormValue("data")
 
+		groupClientList := server.Manager.GetGroupClientList(systemId + ":" + groupName)
+		// 发送信息到群组
+		sender := &server.Sender{
+			SystemId:  systemId,
+			ClientId:  strings.Join(groupClientList, ","),
+			MessageId: client.GenerateUuid(32, nil),
+			GroupName: groupName,
+			Code:      code.SendMsgSuccess,
+			Msg:       code.SendMsgSuccess.Msg(),
+			Data:      data,
+		}
+		//发送系统通知
+		server.SendMessageToLocalGroup(sender)
+
+		// 返回
+		msg, _ := json.Marshal(sender)
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		writer.Write(msg)
+		return
 	})
 	// 关闭连接
 	http.HandleFunc("/close", func(writer http.ResponseWriter, request *http.Request) {

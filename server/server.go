@@ -18,18 +18,18 @@ type (
 		MessageId string
 		Code      code.Code
 		Msg       string
-		Data      *string
+		Data      interface{}
 	}
 
 	// Sender 发送者结构体
 	Sender struct {
-		SystemId  string    `json:"system_id"`
-		ClientId  string    `json:"client_id"`
-		MessageId string    `json:"message_id"`
-		GroupName string    `json:"group_name"`
-		Code      code.Code `json:"code"`
-		Msg       string    `json:"msg"`
-		Data      *string   `json:"data"`
+		SystemId  string      `json:"system_id"`
+		ClientId  string      `json:"client_id"`
+		MessageId string      `json:"message_id"`
+		GroupName string      `json:"group_name"`
+		Code      code.Code   `json:"code"`
+		Msg       string      `json:"msg"`
+		Data      interface{} `json:"data"`
 	}
 )
 
@@ -81,7 +81,7 @@ func Run() {
 }
 
 // PushToClientMsgChan 发送消息体到通道
-func PushToClientMsgChan(clientId, messageId string, code code.Code, msg string, data *string) {
+func PushToClientMsgChan(clientId, messageId string, code code.Code, msg string, data interface{}) {
 	ToClientMsgChan <- clientInfo{ClientId: clientId, MessageId: messageId, Code: code, Msg: msg, Data: data}
 }
 
@@ -134,12 +134,12 @@ func MessagePushListener() {
 	for {
 		clientInfo := <-ToClientMsgChan
 		if client, err := Manager.GetClientByList(clientInfo.ClientId); err == nil && client != nil {
-			if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Code, clientInfo.Msg, *clientInfo.Data, nil); err != nil {
+			if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Code, clientInfo.Msg, clientInfo.Data, nil); err != nil {
 				Manager.ClientDisConnect <- client
-				log.WriteLog(client.SystemId, client.ClientId, clientInfo.MessageId, *clientInfo.Data, code.ClientNotExist, "客户端异常离线 "+err.Error(), 4)
+				log.WriteLog(client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Data, code.ClientNotExist, "客户端异常离线 "+err.Error(), 4)
 			}
 		} else {
-			log.WriteLog("", clientInfo.ClientId, clientInfo.MessageId, *clientInfo.Data, code.ClientNotExist, code.ClientNotExist.Msg(), 4)
+			log.WriteLog("", clientInfo.ClientId, clientInfo.MessageId, clientInfo.Data, code.ClientNotExist, code.ClientNotExist.Msg(), 4)
 		}
 	}
 }

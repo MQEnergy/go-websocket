@@ -14,6 +14,8 @@ const (
 	SendMsgSuccess
 	HeartbeatErr
 	SystemErr
+	BindGroupSuccess
+	BindGroupErr
 	UnAuthed
 	InternalErr
 	RequestMethodErr
@@ -32,6 +34,8 @@ var CodeMap = map[Code]string{
 	SendMsgSuccess:     "发送消息体成功",
 	HeartbeatErr:       "心跳检测失败",
 	SystemErr:          "系统不能为空",
+	BindGroupSuccess:   "绑定群组成功",
+	BindGroupErr:       "绑定群组失败",
 	UnAuthed:           "用户未认证",
 	InternalErr:        "服务器内部错误",
 	RequestMethodErr:   "请求方式错误",
