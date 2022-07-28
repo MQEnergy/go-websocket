@@ -114,11 +114,9 @@ func main() {
 		groupName := request.FormValue("group_name")
 		data := request.FormValue("data")
 
-		groupClientList := server.Manager.GetGroupClientList(systemId + ":" + groupName)
 		// 发送信息到群组
 		sender := &server.Sender{
 			SystemId:  systemId,
-			ClientId:  strings.Join(groupClientList, ","),
 			MessageId: client.GenerateUuid(32, nil),
 			GroupName: groupName,
 			Code:      code.SendMsgSuccess,
@@ -129,6 +127,8 @@ func main() {
 		server.SendMessageToLocalGroup(sender)
 
 		// 返回
+		groupClientList := server.Manager.GetGroupClientList(systemId + ":" + groupName)
+		sender.ClientId = strings.Join(groupClientList, ",")
 		msg, _ := json.Marshal(sender)
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		writer.Write(msg)

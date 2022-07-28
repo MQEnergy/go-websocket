@@ -25,8 +25,8 @@ type Manager struct {
 func NewManager() *Manager {
 	return &Manager{
 		ClientList:       make(map[string]*Client),
-		GroupList:        make(map[string][]string, 1000),
-		SystemClientList: make(map[string][]string, 1000),
+		GroupList:        make(map[string][]string, 10000),
+		SystemClientList: make(map[string][]string, 10000),
 		ClientConnect:    make(chan *Client, 10000),
 		ClientDisConnect: make(chan *Client, 10000),
 	}
