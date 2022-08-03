@@ -3,7 +3,6 @@ package client
 import (
 	"errors"
 	"github.com/MQEnergy/go-websocket/utils/code"
-	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
 	"sync"
 )
@@ -33,26 +32,28 @@ func NewManager() *Manager {
 }
 
 // ClientConnectHandler 客户端连接handler
-func (m *Manager) ClientConnectHandler(client *Client) {
+func (m *Manager) ClientConnectHandler(client *Client) error {
 	// 建立连接事件
 	m.SetClientToList(client)
 	// 发送给客户端连接成功
 	if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, "", code.Success, code.Success.Msg(), "", ""); err != nil {
-		// 写日志
-		log.WriteLog(client.SystemId, client.ClientId, "", map[string]string{"err": err.Error()}, code.ClientFailed, code.ClientFailed.Msg(), 4)
 		m.ClientDisConnect <- client
+		return err
 	}
+	return nil
 }
 
 // ClientDisConnectHandler 客户端断连handler
-func (m *Manager) ClientDisConnectHandler(client *Client) {
+func (m *Manager) ClientDisConnectHandler(client *Client) error {
 	// 断开连接事件
-	client.Conn.Close()
+	if err := client.Conn.Close(); err != nil {
+		return err
+	}
 	// 删除客户端
 	m.RemoveAllClient(client)
-	// 日志记录
-	log.WriteLog(client.SystemId, client.ClientId, "", "data", code.ClientFailed, code.ClientFailed.Msg(), 4)
+	// 清除当前客户端
 	client = nil
+	return nil
 }
 
 // SetClientToList 添加客户端到列表
@@ -72,11 +73,16 @@ func (m *Manager) SetSystemClientToList(client *Client) {
 // SetClientToGroupList 添加客户端到分组
 func (m *Manager) SetClientToGroupList(groupName string, client *Client) error {
 	//判断之前是否有添加过
+	groupFlag := true
 	for _, groupValue := range client.GroupList {
-		if groupValue != groupName {
-			// 组名添加
-			client.GroupList = append(client.GroupList, groupName)
+		if groupValue == groupName {
+			groupFlag = false
+			break
 		}
+	}
+	// 组名添加
+	if groupFlag {
+		client.GroupList = append(client.GroupList, groupName)
 	}
 	groupKey := client.SystemId + ":" + groupName
 	// 判断客户端是否已添加至分组
@@ -186,12 +192,11 @@ func (m *Manager) RemoveSystemClientByList(client *Client) {
 // CloseClient 关闭客户端
 func (m *Manager) CloseClient(clientId, systemId string) error {
 	conn, err := m.GetClientByList(clientId)
-	if err == nil {
+	if err == nil && conn != nil {
 		if conn.SystemId != systemId {
-			return err
+			return errors.New(code.RequestParamErr.Msg())
 		}
 		m.ClientDisConnect <- conn
 	}
-	log.WriteLog(conn.SystemId, conn.ClientId, "", "", code.ClientFailed, code.ClientCloseSuccess.Msg(), 4)
 	return nil
 }

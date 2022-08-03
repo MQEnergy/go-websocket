@@ -8,6 +8,7 @@ const (
 	ClientFailed
 	ClientNotExist
 	ClientCloseSuccess
+	ClientCloseFailed
 	ReadMsgErr
 	ReadMsgSuccess
 	SendMsgErr
@@ -28,6 +29,7 @@ var CodeMap = map[Code]string{
 	ClientFailed:       "客户端主动断连",
 	ClientNotExist:     "客户端不存在",
 	ClientCloseSuccess: "客户端关闭成功",
+	ClientCloseFailed:  "客户端关闭失败",
 	ReadMsgErr:         "读取消息体失败",
 	ReadMsgSuccess:     "读取消息体成功",
 	SendMsgErr:         "发送消息体失败",

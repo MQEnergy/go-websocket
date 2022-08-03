@@ -1,12 +1,10 @@
 package server
 
 import (
-	"encoding/json"
 	"github.com/MQEnergy/go-websocket/client"
 	"github.com/MQEnergy/go-websocket/utils/code"
 	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
-	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/websocket"
 	"time"
 )
@@ -45,39 +43,26 @@ func init() {
 
 // Run 执行客户端连接处理
 func Run() {
-	go func() {
-		for {
-			select {
-			case client := <-Manager.ClientConnect:
-				// 客户端连接处理
-				Manager.ClientConnectHandler(client)
-
-			case disClient := <-Manager.ClientDisConnect:
-				// 客户端断连处理
-				Manager.ClientDisConnectHandler(disClient)
-				//// 客户端下线通知
-				marshal, _ := json.Marshal(map[string]string{
-					"clientId": disClient.ClientId,
-				})
-				data := string(marshal)
-				if len(disClient.GroupList) > 0 {
-					for _, groupName := range disClient.GroupList {
-						//发送下线通知
-						node, _ := snowflake.NewNode(1)
-						SendMessageToLocalGroup(&Sender{
-							SystemId:  disClient.SystemId,
-							ClientId:  disClient.ClientId,
-							MessageId: client.GenerateUuid(32, node),
-							GroupName: groupName,
-							Code:      code.ClientFailed,
-							Msg:       code.ClientFailed.Msg(),
-							Data:      &data,
-						})
-					}
-				}
+	for {
+		select {
+		// 客户端连接处理
+		case client := <-Manager.ClientConnect:
+			err := Manager.ClientConnectHandler(client)
+			if err != nil {
+				log.WriteLog(client.SystemId, client.ClientId, "", client, code.ClientFailed, code.ClientFailed.Msg(), 4)
+			} else {
+				log.WriteLog(client.SystemId, client.ClientId, "", client, code.Success, code.Success.Msg(), 4)
+			}
+		// 客户端断连处理
+		case disClient := <-Manager.ClientDisConnect:
+			err := Manager.ClientDisConnectHandler(disClient)
+			if err != nil {
+				log.WriteLog(disClient.SystemId, disClient.ClientId, "", disClient, code.ClientCloseFailed, code.ClientCloseFailed.Msg(), 4)
+			} else {
+				log.WriteLog(disClient.SystemId, disClient.ClientId, "", disClient, code.ClientCloseSuccess, code.ClientCloseSuccess.Msg(), 4)
 			}
 		}
-	}()
+	}
 }
 
 // PushToClientMsgChan 发送消息体到通道
@@ -135,8 +120,10 @@ func MessagePushListener() {
 		clientInfo := <-ToClientMsgChan
 		if client, err := Manager.GetClientByList(clientInfo.ClientId); err == nil && client != nil {
 			if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Code, clientInfo.Msg, clientInfo.Data, nil); err != nil {
-				Manager.ClientDisConnect <- client
 				log.WriteLog(client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Data, code.ClientNotExist, "客户端异常离线 "+err.Error(), 4)
+				Manager.ClientDisConnect <- client
+			} else {
+				log.WriteLog(client.SystemId, client.ClientId, clientInfo.MessageId, clientInfo.Data, code.SendMsgSuccess, code.SendMsgSuccess.Msg(), 4)
 			}
 		} else {
 			log.WriteLog("", clientInfo.ClientId, clientInfo.MessageId, clientInfo.Data, code.ClientNotExist, code.ClientNotExist.Msg(), 4)
@@ -146,22 +133,19 @@ func MessagePushListener() {
 
 // HeartbeatListener 心跳监听
 func HeartbeatListener() {
-	go func() {
-		ticker := time.NewTicker(heartbeatTimer)
-		defer ticker.Stop()
+	ticker := time.NewTicker(heartbeatTimer)
+	defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				//发送心跳
-				allClient := Manager.GetAllClient()
-				for clientId, client := range allClient {
-					if err := client.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
-						Manager.ClientDisConnect <- client
-						log.WriteLog(client.SystemId, clientId, "", map[string]interface{}{"clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
-					}
+	for {
+		select {
+		case <-ticker.C:
+			allClient := Manager.GetAllClient()
+			for clientId, client := range allClient {
+				if err := client.Conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(time.Second)); err != nil {
+					Manager.ClientDisConnect <- client
+					log.WriteLog(client.SystemId, clientId, "", map[string]interface{}{"clientCount": Manager.GetAllClientCount()}, code.HeartbeatErr, "心跳检测失败 "+err.Error(), 4)
 				}
 			}
 		}
-	}()
+	}
 }

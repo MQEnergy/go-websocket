@@ -32,23 +32,24 @@ type Connect struct {
 	writer   http.ResponseWriter
 	request  *http.Request
 	header   http.Header
-	_client  client.Client   // 客户端
+	_client  *client.Client  // 客户端
 	_manager *client.Manager // 连接管理器
 }
 
 type ConnInterface interface {
-	OnHandshake() error // OnHandshake 握手
-	OnOpen() error      // OnOpen 连接
-	OnMessage() error   // OnMessage 接收消息
-	OnClose() error     // OnClose 关闭连接
+	OnHandshake() error                                          // OnHandshake 握手
+	OnOpen() error                                               // OnOpen 连接
+	OnMessage(fn func(c *client.Client, msg []byte) error) error // OnMessage 接收消息
+	OnClose() error                                              // OnClose 关闭连接
 }
 
 // NewConn 实例化
-func NewConn(w http.ResponseWriter, r *http.Request, header http.Header) ConnInterface {
+func NewConn(w http.ResponseWriter, r *http.Request, header http.Header, c *client.Client) ConnInterface {
 	return &Connect{
 		writer:   w,
 		request:  r,
 		header:   header,
+		_client:  c,
 		_manager: server.Manager,
 	}
 }
@@ -58,7 +59,7 @@ func (c *Connect) OnHandshake() error {
 	// http服务升级为websocket协议
 	conn, err := upgrader.Upgrade(c.writer, c.request, c.header)
 	if err != nil {
-		log.WriteLog(c._client.SystemId, c._client.ClientId, "", map[string]string{"err": err.Error()}, code.ReadMsgErr, code.ClientFailed.Msg(), 4)
+		log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ReadMsgErr, code.ClientFailed.Msg()+" err: "+err.Error(), 4)
 		return err
 	}
 	conn.SetReadLimit(maxMessageSize)
@@ -69,53 +70,47 @@ func (c *Connect) OnHandshake() error {
 	systemId := c.request.FormValue("system_id")
 	if systemId == "" {
 		// 给客户端发送信息
-		response.WsJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", code.Failed, code.Failed.Msg(), []string{}, []string{})
+		response.WsJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", code.RequestParamErr, code.RequestParamErr.Msg(), nil, nil)
 		// 关闭连接
-		c.OnClose()
+		c._client.Conn.Close()
 		return errors.New(code.Failed.Msg())
 	}
 	// 生成客户端ID
 	clientId := client.GenerateUuid(0, nil)
 	// 实例化新客户端连接
-	c._client = *client.NewClient(clientId, systemId, conn)
+	c._client = client.NewClient(clientId, systemId, conn)
 	// 添加系统ID和客户端到列表
-	c._manager.SetSystemClientToList(&c._client)
+	c._manager.SetSystemClientToList(c._client)
 	// 打开websocket 给客户端发送消息
 	c.OnOpen()
-	// 心跳检测
-	server.HeartbeatListener()
 	return nil
 }
 
 // OnOpen 开启websocket
 func (c *Connect) OnOpen() error {
-	// 开启协程读取信息
-	c.OnMessage()
-
 	// 客户端连接事件
-	c._manager.ClientConnect <- &c._client
+	c._manager.ClientConnect <- c._client
 
-	// 监听客户端连接或断连
-	server.Run()
 	return nil
 }
 
 // OnMessage 接收消息
-func (c *Connect) OnMessage() error {
+func (c *Connect) OnMessage(fn func(c *client.Client, msg []byte) error) error {
 	go func() {
 		for {
 			//接收消息
 			if messageType, message, err := c._client.Conn.ReadMessage(); err != nil {
-				if messageType == -1 &&
-					websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) {
-					c._manager.ClientDisConnect <- &c._client
+				if messageType == -1 && websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure, websocket.CloseNoStatusReceived) {
+					c._manager.ClientDisConnect <- c._client
+				} else if messageType != websocket.PingMessage {
+					return
 				} else {
 					log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ReadMsgErr, code.ReadMsgErr.Msg()+" err: "+err.Error(), 4)
 				}
 				return
 			} else {
-				// 推送给客户端
-				response.WsJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", code.ReadMsgSuccess, code.ReadMsgSuccess.Msg(), string(message), nil)
+				// 回调函数
+				fn(c._client, message)
 			}
 		}
 	}()
@@ -127,5 +122,6 @@ func (c *Connect) OnClose() error {
 	if err := c._manager.CloseClient(c._client.ClientId, c._client.SystemId); err != nil {
 		return err
 	}
+	log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ClientCloseSuccess, code.ClientCloseSuccess.Msg(), 4)
 	return nil
 }

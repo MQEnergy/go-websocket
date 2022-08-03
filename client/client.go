@@ -7,10 +7,10 @@ import (
 )
 
 type Client struct {
-	ClientId  string          // 客户端连接ID
-	SystemId  string          // 系统ID 为分布式做准备的
-	Conn      *websocket.Conn // websocket连接
-	GroupList []string        // 分组列表 []string{ groupName1, groupName2... }
+	ClientId  string          `json:"client_id"`  // 客户端连接ID
+	SystemId  string          `json:"system_id"`  // 系统ID 为分布式做准备的
+	Conn      *websocket.Conn `json:"conn"`       // websocket连接
+	GroupList []string        `json:"group_list"` // 分组列表 []string{ groupName1, groupName2... }
 }
 
 // NewClient 实例化客户端
