@@ -8,8 +8,7 @@
 ├── client
 │   ├── client.go             // 客户端
 │   └── client_manager.go     // 客户端管理者
-├── connect
-│   └── connect.go            // websocket连接
+├── connect.go                // websocket连接
 ├── examples
 │   └── server.go             // 服务端案例
 ├── go.mod
