@@ -3,14 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/MQEnergy/go-websocket/client"
-	"github.com/MQEnergy/go-websocket/connect"
-	"github.com/MQEnergy/go-websocket/server"
-	"github.com/MQEnergy/go-websocket/utils/code"
-	"github.com/MQEnergy/go-websocket/utils/log"
-	"github.com/MQEnergy/go-websocket/utils/response"
 	"github.com/bwmarrin/snowflake"
 	"github.com/sirupsen/logrus"
+	"gowebsocket"
+	"gowebsocket/client"
+	"gowebsocket/server"
+	"gowebsocket/utils/code"
+	"gowebsocket/utils/log"
+	"gowebsocket/utils/response"
 	"net/http"
 	"strings"
 )
@@ -34,7 +34,7 @@ func main() {
 
 	// 启动websocket
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		conn := connect.NewConn(writer, request, writer.Header(), &client.Client{})
+		conn := gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{})
 		conn.OnHandshake()
 		// 开启协程读取信息
 		conn.OnMessage(func(c *client.Client, msg []byte) error {
@@ -192,7 +192,7 @@ func main() {
 			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
 			return
 		}
-		if err := connect.NewConn(writer, request, writer.Header(), &client.Client{ClientId: clientId, SystemId: systemId}).OnClose(); err != nil {
+		if err := gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{ClientId: clientId, SystemId: systemId}).OnClose(); err != nil {
 			writer.Write([]byte("{\"msg\":\"" + err.Error() + "\"}"))
 			return
 		}

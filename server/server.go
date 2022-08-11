@@ -1,11 +1,11 @@
 package server
 
 import (
-	"github.com/MQEnergy/go-websocket/client"
-	"github.com/MQEnergy/go-websocket/utils/code"
-	"github.com/MQEnergy/go-websocket/utils/log"
-	"github.com/MQEnergy/go-websocket/utils/response"
 	"github.com/gorilla/websocket"
+	"gowebsocket/client"
+	"gowebsocket/utils/code"
+	"gowebsocket/utils/log"
+	"gowebsocket/utils/response"
 	"time"
 )
 

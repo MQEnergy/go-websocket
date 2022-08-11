@@ -1,4 +1,4 @@
-module github.com/MQEnergy/go-websocket
+module gowebsocket
 
 go 1.18
 
@@ -8,4 +8,4 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 )
 
-require golang.org/x/sys v0.0.0-20220715151400-c0bba94af5f8 // indirect
+require golang.org/x/sys v0.0.0-20220808155132-1c4a2a72c664 // indirect

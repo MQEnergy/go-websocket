@@ -1,8 +1,8 @@
 package response
 
 import (
-	"github.com/MQEnergy/go-websocket/utils/code"
 	"github.com/gorilla/websocket"
+	"gowebsocket/utils/code"
 )
 
 // responseData 响应结构体
