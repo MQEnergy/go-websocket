@@ -1,4 +1,4 @@
-module gowebsocket
+module github.com/MQEnergy/go-websocket
 
 go 1.18
 

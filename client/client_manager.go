@@ -2,8 +2,8 @@ package client
 
 import (
 	"errors"
-	"gowebsocket/utils/code"
-	"gowebsocket/utils/response"
+	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/MQEnergy/go-websocket/utils/response"
 	"sync"
 )
 

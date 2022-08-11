@@ -2,12 +2,12 @@ package gowebsocket
 
 import (
 	"errors"
+	"github.com/MQEnergy/go-websocket/client"
+	"github.com/MQEnergy/go-websocket/server"
+	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/MQEnergy/go-websocket/utils/log"
+	"github.com/MQEnergy/go-websocket/utils/response"
 	"github.com/gorilla/websocket"
-	"gowebsocket/client"
-	"gowebsocket/server"
-	"gowebsocket/utils/code"
-	"gowebsocket/utils/log"
-	"gowebsocket/utils/response"
 	"net/http"
 )
 

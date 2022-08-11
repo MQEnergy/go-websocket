@@ -1,8 +1,8 @@
 package log
 
 import (
+	"github.com/MQEnergy/go-websocket/utils/code"
 	"github.com/sirupsen/logrus"
-	"gowebsocket/utils/code"
 )
 
 var (
