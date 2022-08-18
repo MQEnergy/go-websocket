@@ -1,6 +1,11 @@
 # go-websocket
 基于gorilla/websocket封装的websocket库，实现基于系统纬度的消息推送，基于群组纬度的消息推送，基于单个和多个客户端消息推送。
 
+[![GoDoc](https://godoc.org/github.com/MQEnergy/go-websocket/?status.svg)](https://pkg.go.dev/github.com/MQEnergy/go-websocket)
+[![Go Report Card](https://goreportcard.com/badge/github.com/MQEnergy/go-websocket)](https://goreportcard.com/report/github.com/MQEnergy/go-websocket)
+[![codebeat badge](https://codebeat.co/badges/063ec0b6-5059-4b1b-92c0-4f750438faa8)](https://codebeat.co/projects/github-com-mqenergy-go-websocket-main)
+[![GitHub license](https://img.shields.io/github/license/MQEnergy/go-websocket)](https://github.com/MQEnergy/go-websocket/blob/main/LICENSE)
+
 ## 目录结构
 ```
 ├── LICENSE
