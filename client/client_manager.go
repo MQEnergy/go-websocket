@@ -20,15 +20,23 @@ type Manager struct {
 	SystemClientListLock sync.RWMutex // 系统列表读写锁
 }
 
+var (
+	once sync.Once
+	man  *Manager
+)
+
 // NewManager 实例化
 func NewManager() *Manager {
-	return &Manager{
-		ClientList:       make(map[string]*Client),
-		GroupList:        make(map[string][]string, 10000),
-		SystemClientList: make(map[string][]string, 10000),
-		ClientConnect:    make(chan *Client, 10000),
-		ClientDisConnect: make(chan *Client, 10000),
-	}
+	once.Do(func() {
+		man = &Manager{
+			ClientList:       make(map[string]*Client),
+			GroupList:        make(map[string][]string, 10000),
+			SystemClientList: make(map[string][]string, 10000),
+			ClientConnect:    make(chan *Client, 10000),
+			ClientDisConnect: make(chan *Client, 10000),
+		}
+	})
+	return man
 }
 
 // ClientConnectHandler 客户端连接handler
