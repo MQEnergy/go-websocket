@@ -44,7 +44,7 @@ func (m *Manager) ClientConnectHandler(client *Client) error {
 	// 建立连接事件
 	m.SetClientToList(client)
 	// 发送给客户端连接成功
-	if err := response.WsJson(client.Conn, client.SystemId, client.ClientId, "", code.Success, code.Success.Msg(), "", ""); err != nil {
+	if err := response.WsSuccessJson(client.Conn, client.SystemId, client.ClientId, "", nil, nil); err != nil {
 		m.ClientDisConnect <- client
 		return err
 	}

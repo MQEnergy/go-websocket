@@ -70,7 +70,7 @@ func (c *Connect) OnHandshake() error {
 	systemId := c.request.FormValue("system_id")
 	if systemId == "" {
 		// 给客户端发送信息
-		response.WsJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", code.RequestParamErr, code.RequestParamErr.Msg(), nil, nil)
+		response.WsRequestParamErrJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", nil, nil)
 		// 关闭连接
 		c._client.Conn.Close()
 		return errors.New(code.Failed.Msg())
