@@ -40,10 +40,10 @@ func main() {
 		conn.OnMessage(func(c *client.Client, msg []byte) error {
 			data := make(map[string]interface{}, 0)
 			if err := json.Unmarshal(msg, &data); err != nil {
-				response.WsJson(c.Conn, c.SystemId, c.ClientId, "", code.RequestParamErr, code.RequestParamErr.Msg(), nil, nil)
+				response.WsRequestParamErrJson(c.Conn, c.SystemId, c.ClientId, "", nil, nil)
 				return err
 			}
-			response.WsJson(c.Conn, c.SystemId, c.ClientId, "", code.ReadMsgSuccess, code.ReadMsgSuccess.Msg(), data, nil)
+			response.WsReadMsgSuccessJson(c.Conn, c.SystemId, c.ClientId, "", data, nil)
 			log.WriteLog(c.SystemId, c.ClientId, "", string(msg), code.ReadMsgSuccess, code.ReadMsgSuccess.Msg(), 4)
 			return nil
 		})
