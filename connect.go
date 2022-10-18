@@ -5,8 +5,10 @@ import (
 	"github.com/MQEnergy/go-websocket/client"
 	"github.com/MQEnergy/go-websocket/server"
 	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/MQEnergy/go-websocket/utils/ip"
 	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
+	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/websocket"
 	"net/http"
 )
@@ -76,7 +78,16 @@ func (c *Connect) OnHandshake() error {
 		return errors.New(code.Failed.Msg())
 	}
 	// 生成客户端ID
-	clientId := client.GenerateUuid(0, nil)
+	localIp, err1 := ip.GetLocalIpToInt()
+	if err1 != nil {
+		response.WsRequestParamErrJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", nil, nil)
+	}
+	snowflake.NodeBits = 63
+	node, err2 := snowflake.NewNode(int64(localIp))
+	if err2 != nil {
+		response.WsRequestParamErrJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", nil, nil)
+	}
+	clientId := client.GenerateUuid(0, node)
 	// 实例化新客户端连接
 	c._client = client.NewClient(clientId, systemId, conn)
 	// 添加系统ID和客户端到列表
