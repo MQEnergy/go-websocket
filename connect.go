@@ -11,6 +11,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"sync"
 )
 
 const (
@@ -29,6 +30,7 @@ var (
 		},
 	}
 	Node *snowflake.Node
+	once sync.Once
 )
 
 func init() {
@@ -36,7 +38,6 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	snowflake.NodeBits = 63
 	Node, err = snowflake.NewNode(int64(localIp))
 	if err != nil {
 		panic(err)
