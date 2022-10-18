@@ -28,7 +28,20 @@ var (
 			return true
 		},
 	}
+	Node *snowflake.Node
 )
+
+func init() {
+	localIp, err := ip.GetLocalIpToInt()
+	if err != nil {
+		panic(err)
+	}
+	snowflake.NodeBits = 63
+	Node, err = snowflake.NewNode(int64(localIp))
+	if err != nil {
+		panic(err)
+	}
+}
 
 type Connect struct {
 	writer   http.ResponseWriter
@@ -77,17 +90,8 @@ func (c *Connect) OnHandshake() error {
 		c._client.Conn.Close()
 		return errors.New(code.Failed.Msg())
 	}
-	// 生成客户端ID
-	localIp, err1 := ip.GetLocalIpToInt()
-	if err1 != nil {
-		response.WsRequestParamErrJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", nil, nil)
-	}
-	snowflake.NodeBits = 63
-	node, err2 := snowflake.NewNode(int64(localIp))
-	if err2 != nil {
-		response.WsRequestParamErrJson(c._client.Conn, c._client.SystemId, c._client.ClientId, "", nil, nil)
-	}
-	clientId := client.GenerateUuid(0, node)
+
+	clientId := client.GenerateUuid(0, Node)
 	// 实例化新客户端连接
 	c._client = client.NewClient(clientId, systemId, conn)
 	// 添加系统ID和客户端到列表
