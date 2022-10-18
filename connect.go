@@ -36,7 +36,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	Node, err = snowflake.NewNode(int64(localIp))
+	Node, err = snowflake.NewNode(int64(localIp) % 1023)
 	if err != nil {
 		panic(err)
 	}
