@@ -54,7 +54,7 @@ type ConnInterface interface {
 	OnHandshake() error                                          // OnHandshake 握手
 	OnOpen() error                                               // OnOpen 连接
 	OnMessage(fn func(c *client.Client, msg []byte) error) error // OnMessage 接收消息
-	OnClose() error                                              // OnClose 关闭连接
+	OnClose(fn func(c *client.Client) error) error               // OnClose 关闭连接
 }
 
 // NewConn 实例化
@@ -132,10 +132,12 @@ func (c *Connect) OnMessage(fn func(c *client.Client, msg []byte) error) error {
 }
 
 // OnClose 关闭连接
-func (c *Connect) OnClose() error {
+func (c *Connect) OnClose(fn func(c *client.Client) error) error {
 	if err := c._manager.CloseClient(c._client.ClientId, c._client.SystemId); err != nil {
 		return err
 	}
+	// 回调函数
+	fn(c._client)
 	log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ClientCloseSuccess, code.ClientCloseSuccess.Msg(), 4)
 	return nil
 }

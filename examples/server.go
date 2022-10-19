@@ -22,6 +22,9 @@ func init() {
 		TimestampFormat: "2006-01-02 15:04:05",
 	})
 }
+
+var Conn gowebsocket.ConnInterface
+
 func main() {
 	// 监听消息发送
 	go server.MessagePushListener()
@@ -34,10 +37,10 @@ func main() {
 
 	// 启动websocket
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		conn := gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{})
-		conn.OnHandshake()
+		Conn = gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{})
+		Conn.OnHandshake()
 		// 开启协程读取信息
-		conn.OnMessage(func(c *client.Client, msg []byte) error {
+		Conn.OnMessage(func(c *client.Client, msg []byte) error {
 			data := make(map[string]interface{}, 0)
 			if err := json.Unmarshal(msg, &data); err != nil {
 				response.WsRequestParamErrJson(c.Conn, c.SystemId, c.ClientId, "", nil, nil)
@@ -192,7 +195,9 @@ func main() {
 			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
 			return
 		}
-		if err := gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{ClientId: clientId, SystemId: systemId}).OnClose(); err != nil {
+		if err := Conn.OnClose(func(c *client.Client) error {
+			return nil
+		}); err != nil {
 			writer.Write([]byte("{\"msg\":\"" + err.Error() + "\"}"))
 			return
 		}
