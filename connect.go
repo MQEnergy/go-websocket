@@ -51,7 +51,7 @@ type Connect struct {
 }
 
 type ConnInterface interface {
-	OnHandshake() error                                          // OnHandshake 握手
+	OnHandshake(fn func(c *client.Client) error) error           // OnHandshake 握手
 	OnOpen() error                                               // OnOpen 连接
 	OnMessage(fn func(c *client.Client, msg []byte) error) error // OnMessage 接收消息
 	OnClose(fn func(c *client.Client) error) error               // OnClose 关闭连接
@@ -69,7 +69,7 @@ func NewConn(w http.ResponseWriter, r *http.Request, header http.Header, c *clie
 }
 
 // OnHandshake 握手
-func (c *Connect) OnHandshake() error {
+func (c *Connect) OnHandshake(fn func(c *client.Client) error) error {
 	// http服务升级为websocket协议
 	conn, err := upgrader.Upgrade(c.writer, c.request, c.header)
 	if err != nil {
@@ -97,6 +97,8 @@ func (c *Connect) OnHandshake() error {
 	c._manager.SetSystemClientToList(c._client)
 	// 打开websocket 给客户端发送消息
 	c.OnOpen()
+	// 回调函数
+	fn(c._client)
 	return nil
 }
 

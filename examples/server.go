@@ -38,7 +38,9 @@ func main() {
 	// 启动websocket
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		Conn = gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{})
-		Conn.OnHandshake()
+		Conn.OnHandshake(func(c *client.Client) error {
+			return nil
+		})
 		// 开启协程读取信息
 		Conn.OnMessage(func(c *client.Client, msg []byte) error {
 			data := make(map[string]interface{}, 0)
