@@ -98,7 +98,10 @@ func (c *Connect) OnHandshake(fn func(c *client.Client) error) error {
 	// 打开websocket 给客户端发送消息
 	c.OnOpen()
 	// 回调函数
-	fn(c._client)
+	if err := fn(c._client); err != nil {
+		c._client.Conn.Close()
+		return err
+	}
 	return nil
 }
 
@@ -106,7 +109,6 @@ func (c *Connect) OnHandshake(fn func(c *client.Client) error) error {
 func (c *Connect) OnOpen() error {
 	// 客户端连接事件
 	c._manager.ClientConnect <- c._client
-
 	return nil
 }
 
@@ -126,7 +128,9 @@ func (c *Connect) OnMessage(fn func(c *client.Client, msg []byte) error) error {
 				return
 			} else {
 				// 回调函数
-				fn(c._client, message)
+				if err := fn(c._client, message); err != nil {
+					c._manager.ClientDisConnect <- c._client
+				}
 			}
 		}
 	}()
@@ -139,7 +143,9 @@ func (c *Connect) OnClose(fn func(c *client.Client) error) error {
 		return err
 	}
 	// 回调函数
-	fn(c._client)
+	if err := fn(c._client); err != nil {
+		return err
+	}
 	log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ClientCloseSuccess, code.ClientCloseSuccess.Msg(), 4)
 	return nil
 }
