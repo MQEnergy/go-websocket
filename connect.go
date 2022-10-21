@@ -89,16 +89,18 @@ func (c *Connect) OnHandshake(fn func(c *client.Client) error) error {
 		c._client.Conn.Close()
 		return errors.New(code.Failed.Msg())
 	}
+	clientId := client.GenerateUuid(0, Node)
+	// 实例化新客户端连接
+	c._client = client.NewClient(clientId, systemId, conn)
+	// 添加系统ID和客户端到列表
+	c._manager.SetSystemClientToList(c._client)
+
 	// 回调函数
 	if err := fn(c._client); err != nil {
+		// 删除系统里的客户端
+		c._manager.RemoveSystemClientByList(c._client)
 		c._client.Conn.Close()
 		return err
-	} else {
-		clientId := client.GenerateUuid(0, Node)
-		// 实例化新客户端连接
-		c._client = client.NewClient(clientId, systemId, conn)
-		// 添加系统ID和客户端到列表
-		c._manager.SetSystemClientToList(c._client)
 	}
 	// 打开websocket 给客户端发送消息
 	return c.OnOpen()
