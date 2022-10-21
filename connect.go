@@ -98,10 +98,12 @@ func (c *Connect) OnHandshake(fn func(c *client.Client) error) error {
 	// 打开websocket 给客户端发送消息
 	c.OnOpen()
 	// 回调函数
-	if err := fn(c._client); err != nil {
-		c._client.Conn.Close()
-		return err
-	}
+	fn(c._client)
+	//if err := fn(c._client); err != nil {
+	//log.WriteLog(c._client.SystemId, c._client.ClientId, "", "", code.ReadMsgErr, code.ClientFailed.Msg()+" err: "+err.Error(), 4)
+	//c._client.Conn.Close()
+	//return err
+	//}
 	return nil
 }
 
