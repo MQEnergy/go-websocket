@@ -49,7 +49,7 @@ func Run() {
 		case client := <-Manager.ClientConnect:
 			err := Manager.ClientConnectHandler(client)
 			if err != nil {
-				log.WriteLog(client.SystemId, client.ClientId, "", client, code.ClientFailed, code.ClientFailed.Msg(), 4)
+				log.WriteLog(client.SystemId, client.ClientId, "", client, code.ClientFailed, code.ClientFailed.Msg()+" err: "+err.Error(), 4)
 			} else {
 				log.WriteLog(client.SystemId, client.ClientId, "", client, code.Success, code.Success.Msg(), 4)
 			}
@@ -57,7 +57,7 @@ func Run() {
 		case disClient := <-Manager.ClientDisConnect:
 			err := Manager.ClientDisConnectHandler(disClient)
 			if err != nil {
-				log.WriteLog(disClient.SystemId, disClient.ClientId, "", disClient, code.ClientCloseFailed, code.ClientCloseFailed.Msg(), 4)
+				log.WriteLog(disClient.SystemId, disClient.ClientId, "", disClient, code.ClientCloseFailed, code.ClientCloseFailed.Msg()+" err: "+err.Error(), 4)
 			} else {
 				log.WriteLog(disClient.SystemId, disClient.ClientId, "", disClient, code.ClientCloseSuccess, code.ClientCloseSuccess.Msg(), 4)
 			}
