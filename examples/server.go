@@ -7,6 +7,7 @@ import (
 	"github.com/MQEnergy/go-websocket/client"
 	"github.com/MQEnergy/go-websocket/server"
 	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/MQEnergy/go-websocket/utils/ip"
 	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
 	"github.com/bwmarrin/snowflake"
@@ -15,46 +16,65 @@ import (
 	"strings"
 )
 
+var (
+	Node *snowflake.Node
+	Conn gowebsocket.ConnInterface
+)
+
 func init() {
 	// 日志注入
 	log.Logger = logrus.New()
 	log.Logger.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat: "2006-01-02 15:04:05",
 	})
+	localIp, err := ip.GetLocalIpToInt()
+	if err != nil {
+		panic(err)
+	}
+	Node, err = snowflake.NewNode(int64(localIp) % 1023)
+	if err != nil {
+		panic(err)
+	}
 }
 
-var Conn gowebsocket.ConnInterface
-
 func main() {
-	// 监听消息发送
-	go server.MessagePushListener()
-
 	// 监听客户端连接或断连
-	go server.Run()
-
-	// 心跳检测
-	go server.HeartbeatListener()
+	//go server.Run()
 
 	// 启动websocket
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		Conn = gowebsocket.NewConn(writer, request, writer.Header(), &client.Client{})
-		Conn.OnHandshake(func(c *client.Client) error {
+		Conn = gowebsocket.New(writer, request, writer.Header(), &client.Client{})
+		// 握手
+		Conn.OnHandshake(func(client *client.Client) error {
+			log.TraceSuccessLog(nil, map[string]string{"system_id": client.SystemId, "client_id": client.ClientId}, 4)
 			return nil
 		})
-		// 开启协程读取信息
+		// 开启协程读取信息和监听写入信息
 		Conn.OnMessage(func(c *client.Client, msg []byte) error {
-			data := make(map[string]interface{}, 0)
-			if err := json.Unmarshal(msg, &data); err != nil {
-				response.WsRequestParamErrJson(c.Conn, c.SystemId, c.ClientId, "", nil, nil)
+			message := make(map[string]interface{}, 0)
+			if err := json.Unmarshal(msg, &message); err != nil {
+				response.WsRequestParamErrJson(c.Conn, message, c)
 				return err
 			}
-			response.WsReadMsgSuccessJson(c.Conn, c.SystemId, c.ClientId, "", data, nil)
-			log.WriteLog(c.SystemId, c.ClientId, "", string(msg), code.ReadMsgSuccess, code.ReadMsgSuccess.Msg(), 4)
+			messageId := client.GenerateUuid(32, Node)
+			sender := &server.Sender{
+				ClientId:  c.ClientId,
+				SystemId:  c.SystemId,
+				MessageId: messageId,
+				Code:      code.SendMsgSuccess,
+				Msg:       code.SendMsgSuccess.Msg(),
+				Data:      &message,
+			}
+			server.SendMessageToClient(sender)
 			return nil
 		})
+		//Conn.OnClose(func(c *client.Client) error {
+		//	fmt.Println("as")
+		//	return nil
+		//})
 		return
 	})
-
+	//
 	// 推送消息到单个客户端
 	http.HandleFunc("/push_to_client", func(writer http.ResponseWriter, request *http.Request) {
 		clientId := request.FormValue("client_id")
@@ -206,9 +226,25 @@ func main() {
 		writer.Write([]byte("{\"msg\":\"客户端关闭成功\"}"))
 		return
 	})
-
-	fmt.Println("服务器启动成功，端口号 :9991")
+	//var upgrade bool
+	//var h http.Header
+	//connectionP := h.Get("Connection")
+	//for _, v := range strings.Split(connectionP, ",") {
+	//	if strings.ToLower(strings.TrimSpace(v)) == "upgrade" {
+	//		upgrade = true
+	//		break
+	//	}
+	//}
+	//if upgrade {
+	//	fmt.Println("服务器启动成功，端口号 :9991")
+	//	if err := http.ListenAndServe(":9991", nil); err != nil {
+	//		fmt.Println("ListenAndServe: ", err)
+	//	}
+	//	return
+	//}
+	fmt.Println("服务器启动成功。端口号 :9991")
 	if err := http.ListenAndServe(":9991", nil); err != nil {
 		fmt.Println("ListenAndServe: ", err)
 	}
+	return
 }

@@ -3,7 +3,9 @@ package client
 import (
 	"errors"
 	"github.com/MQEnergy/go-websocket/utils/code"
+	"github.com/MQEnergy/go-websocket/utils/log"
 	"github.com/MQEnergy/go-websocket/utils/response"
+	"github.com/gorilla/websocket"
 	"sync"
 )
 
@@ -30,8 +32,8 @@ func NewManager() *Manager {
 	once.Do(func() {
 		man = &Manager{
 			ClientList:       make(map[string]*Client),
-			GroupList:        make(map[string][]string, 10000),
-			SystemClientList: make(map[string][]string, 10000),
+			GroupList:        make(map[string][]string, 1000),
+			SystemClientList: make(map[string][]string, 1000),
 			ClientConnect:    make(chan *Client, 10000),
 			ClientDisConnect: make(chan *Client, 10000),
 		}
@@ -41,12 +43,12 @@ func NewManager() *Manager {
 
 // ClientConnectHandler 客户端连接handler
 func (m *Manager) ClientConnectHandler(client *Client) error {
-	// 建立连接事件
+	// 添加客户端到列表
 	m.SetClientToList(client)
 	// 发送给客户端连接成功
-	if err := response.WsSuccessJson(client.Conn, client.SystemId, client.ClientId, "", nil, nil); err != nil {
-		//m.ClientDisConnect <- client
+	if err := response.WsSuccessJson(client.Conn, map[string]string{"system_id": client.SystemId, "client_id": client.ClientId}, nil); err != nil {
 		m.ClientDisConnectHandler(client)
+		log.TraceSendMsgErrLog(client, nil, err.Error(), 4)
 		return err
 	}
 	return nil
@@ -54,12 +56,11 @@ func (m *Manager) ClientConnectHandler(client *Client) error {
 
 // ClientDisConnectHandler 客户端断连handler
 func (m *Manager) ClientDisConnectHandler(client *Client) error {
-	// 断开连接事件
-	if err := client.Conn.Close(); err != nil {
-		return err
-	}
 	// 删除客户端
 	m.RemoveAllClient(client)
+	// 断开连接事件
+	client.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+	client.Conn.Close()
 	// 清除当前客户端
 	client = nil
 	return nil
@@ -68,15 +69,15 @@ func (m *Manager) ClientDisConnectHandler(client *Client) error {
 // SetClientToList 添加客户端到列表
 func (m *Manager) SetClientToList(client *Client) {
 	m.ClientListLock.Lock()
-	defer m.ClientListLock.Unlock()
 	m.ClientList[client.ClientId] = client
+	m.ClientListLock.Unlock()
 }
 
 // SetSystemClientToList 添加系统ID和客户端到列表
 func (m *Manager) SetSystemClientToList(client *Client) {
 	m.SystemClientListLock.Lock()
-	defer m.SystemClientListLock.Unlock()
 	m.SystemClientList[client.SystemId] = append(m.SystemClientList[client.SystemId], client.ClientId)
+	m.SystemClientListLock.Unlock()
 }
 
 // SetClientToGroupList 添加客户端到分组
@@ -108,8 +109,8 @@ func (m *Manager) SetClientToGroupList(groupName string, client *Client) error {
 		return errors.New("请勿重复添加到同一群组")
 	}
 	m.GroupListLock.Lock()
-	defer m.GroupListLock.Unlock()
 	m.GroupList[groupKey] = append(m.GroupList[groupKey], client.ClientId)
+	m.GroupListLock.Unlock()
 	return nil
 }
 
@@ -152,7 +153,7 @@ func (m *Manager) GetGroupClientList(groupKey string) []string {
 	return m.GroupList[groupKey]
 }
 
-// RemoveAllClient 删除所有客户端
+// RemoveAllClient 删除当前存储的所有客户端
 func (m *Manager) RemoveAllClient(client *Client) {
 	// 删除 *Client
 	m.RemoveClientByList(client.ClientId)
@@ -170,32 +171,31 @@ func (m *Manager) RemoveAllClient(client *Client) {
 // RemoveGroupClient 删除分组里的客户端
 func (m *Manager) RemoveGroupClient(groupKey, clientId string) {
 	m.GroupListLock.Lock()
-	defer m.GroupListLock.Unlock()
-
 	for index, _clientId := range m.GroupList[groupKey] {
 		if _clientId == clientId {
 			m.GroupList[groupKey] = append(m.GroupList[groupKey][:index], m.GroupList[groupKey][index+1:]...)
 		}
 	}
+	m.GroupListLock.Unlock()
 }
 
 // RemoveClientByList 从列表删除*Client
 func (m *Manager) RemoveClientByList(clientId string) {
 	m.ClientListLock.Lock()
-	defer m.ClientListLock.Unlock()
 	delete(m.ClientList, clientId)
+	m.ClientListLock.Unlock()
 }
 
 // RemoveSystemClientByList 删除系统里的客户端
 func (m *Manager) RemoveSystemClientByList(client *Client) {
 	m.SystemClientListLock.Lock()
-	defer m.SystemClientListLock.Unlock()
-
 	for index, clientId := range m.SystemClientList[client.SystemId] {
 		if clientId == client.ClientId {
 			m.SystemClientList[client.SystemId] = append(m.SystemClientList[client.SystemId][:index], m.SystemClientList[client.SystemId][index+1:]...)
+			break
 		}
 	}
+	m.SystemClientListLock.Unlock()
 }
 
 // CloseClient 关闭客户端
