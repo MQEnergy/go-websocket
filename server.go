@@ -50,7 +50,7 @@ func (c *Client) ReadMessageHandler() {
 	for {
 		_, message, err := c.Conn.ReadMessage()
 		log.Println("ReadMessageHandler -> ReadMessage", err, string(message))
-		if string(message) != "" && err != nil {
+		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				TraceClientCloseSuccessLog("", "", err.Error(), 4)
 			}
