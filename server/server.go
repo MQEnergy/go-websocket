@@ -13,6 +13,7 @@ import (
 type (
 	// clientInfo 客户端消息体
 	clientInfo struct {
+		SystemId  string      `json:"system_id"`
 		ClientId  string      `json:"client_id"`
 		MessageId string      `json:"message_id"`
 		Code      code.Code   `json:"code"`
@@ -33,7 +34,7 @@ type (
 )
 
 var (
-	ToClientMsgChan chan *clientInfo      // 客户端消息channel通道
+	ToClientMsgChan chan clientInfo       // 客户端消息channel通道
 	Manager         = client.NewManager() // 管理者
 	newline         = []byte{'\n'}
 	space           = []byte{' '}
@@ -45,7 +46,7 @@ var (
 )
 
 func init() {
-	ToClientMsgChan = make(chan *clientInfo, 10000)
+	ToClientMsgChan = make(chan clientInfo, 10000)
 }
 
 // Run 执行客户端连接处理
@@ -64,7 +65,7 @@ func Run() {
 
 // SendMessageToClient 发送消息给客户端
 func SendMessageToClient(sender *Sender) {
-	ToClientMsgChan <- &clientInfo{ClientId: sender.ClientId, MessageId: sender.MessageId, Code: sender.Code, Msg: sender.Msg, Data: sender.Data}
+	ToClientMsgChan <- clientInfo{SystemId: sender.SystemId, ClientId: sender.ClientId, MessageId: sender.MessageId, Code: sender.Code, Msg: sender.Msg, Data: sender.Data}
 }
 
 // WriteMessageHandler 监听并发送给客户端消息
@@ -82,33 +83,34 @@ func WriteMessageHandler(c *client.Client) {
 			if !ok {
 				return
 			}
-			client, err := Manager.GetClientByList(clientInfo.ClientId)
-			if err != nil {
-				return
+			if c.SystemId == clientInfo.SystemId && c.ClientId == clientInfo.ClientId {
+				client, err := Manager.GetClientByList(clientInfo.ClientId)
+				if err != nil {
+					return
+				}
+				params := map[string]string{
+					"system_id":  client.SystemId,
+					"client_id":  clientInfo.ClientId,
+					"message_id": clientInfo.MessageId,
+				}
+				// 给客户端发消息
+				if err := response.WsJson(client.Conn, clientInfo.Code, clientInfo.Msg, clientInfo.Data, params); err != nil {
+					return
+				}
+				log.TraceLog(clientInfo.Code, params, clientInfo.Data, nil, 4)
 			}
-			params := map[string]string{
-				"system_id":  client.SystemId,
-				"client_id":  clientInfo.ClientId,
-				"message_id": clientInfo.MessageId,
-			}
-			// 给客户端发消息
-			if err := response.WsJson(client.Conn, clientInfo.Code, clientInfo.Msg, clientInfo.Data, params); err != nil {
-				//Manager.ClientDisConnect <- client
-				return
-			}
-			log.TraceLog(clientInfo.Code, params, nil, nil, 4)
 
 		// 定时心跳监测
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				//Manager.ClientDisConnect <- c
 				log.TraceHeartbeatErrdLog(map[string]string{
 					"system_id": c.SystemId,
 					"client_id": c.ClientId,
 				}, nil, err.Error(), 3)
 				return
 			}
+		default:
 		}
 	}
 }

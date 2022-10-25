@@ -87,7 +87,7 @@ func main() {
 			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
 			return
 		}
-		messageId := client.GenerateUuid(32, nil)
+		messageId := client.GenerateUuid(32, Node)
 		sender := &server.Sender{
 			ClientId:  clientId,
 			SystemId:  systemId,
