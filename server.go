@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
 	"github.com/gorilla/websocket"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -49,7 +48,6 @@ func (c *Client) ReadMessageHandler() {
 	})
 	for {
 		_, message, err := c.Conn.ReadMessage()
-		log.Println("ReadMessageHandler -> ReadMessage", err, string(message))
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				TraceClientCloseSuccessLog("", "", err.Error(), 4)
@@ -73,7 +71,6 @@ func (c *Client) WriteMessageHandler() {
 		select {
 		case message, ok := <-c.send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			log.Println("WriteMessageHandler -> send", string(message), ok)
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -84,30 +81,10 @@ func (c *Client) WriteMessageHandler() {
 			}
 			c.Conn.SetWriteDeadline(time.Time{})
 			WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Binary)
-			////-------------------------------------------------
-			//w, err := c.Conn.NextWriter(websocket.TextMessage)
-			//if err != nil {
-			//	return
-			//}
-			//w.Write(message)
-			//// Add queued chat messages to the current websocket message.
-			//n := len(c.send)
-			//for i := 0; i < n; i++ {
-			//	w.Write(newline)
-			//	w.Write(<-c.send)
-			//}
-			//if err := w.Close(); err != nil {
-			//	return
-			//}
-			//-------------------------------------------------
 
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				//TraceHeartbeatErrdLog(map[string]string{
-				//	"system_id": c.SystemId,
-				//	"client_id": c.ClientId,
-				//}, nil, err.Error(), 3)
 				return
 			}
 		}
@@ -115,17 +92,16 @@ func (c *Client) WriteMessageHandler() {
 }
 
 // WsServer handles websocket requests from the peer.
-func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) {
+func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		return nil, err
 	}
 	systemId := r.FormValue("system_id")
 	if systemId == "" {
 		sid, err := GetLocalIpToInt()
 		if err != nil {
-			return
+			return nil, err
 		}
 		systemId = strconv.Itoa(sid)
 	}
@@ -143,4 +119,6 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// new goroutines.
 	go client.WriteMessageHandler()
 	go client.ReadMessageHandler()
+
+	return client, nil
 }
