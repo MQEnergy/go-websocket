@@ -1,4 +1,4 @@
-package ip
+package go_websocket
 
 import (
 	"errors"
@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-func ConvertToIntIP(ip string) (int, error) {
+// convertToIntIP 转换ip为int
+func convertToIntIP(ip string) (int, error) {
 	ips := strings.Split(ip, ".")
 	E := errors.New("Not A IP.")
 	if len(ips) != 4 {
@@ -34,10 +35,9 @@ func GetLocalIpToInt() (int, error) {
 		// 检查ip地址判断是否回环地址
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return ConvertToIntIP(ipnet.IP.String())
+				return convertToIntIP(ipnet.IP.String())
 			}
 		}
 	}
-	return 0, errors.New("Can not find the client ip address!")
-
+	return 0, errors.New("can not find the client ip address")
 }

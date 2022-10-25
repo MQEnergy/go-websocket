@@ -1,4 +1,4 @@
-package code
+package go_websocket
 
 type Code int
 
