@@ -49,10 +49,10 @@ func (c *Client) ReadMessageHandler() {
 	})
 	for {
 		_, message, err := c.Conn.ReadMessage()
-		log.Println("err", err)
-		if err != nil {
+		log.Println("ReadMessageHandler -> ReadMessage", err, string(message))
+		if string(message) != "" && err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				TraceSendMsgErrLog("", "", err.Error(), 2)
+				TraceClientCloseSuccessLog("", "", err.Error(), 4)
 			}
 			break
 		}
@@ -73,41 +73,41 @@ func (c *Client) WriteMessageHandler() {
 		select {
 		case message, ok := <-c.send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			log.Println("message", string(message), ok)
+			log.Println("WriteMessageHandler -> send", string(message), ok)
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			msg := make(map[string]interface{}, 0)
-			if err := json.Unmarshal(message, &msg); err != nil {
+			data := make(map[string]interface{}, 0)
+			if err := json.Unmarshal(message, &data); err != nil {
 				return
 			}
-			WriteSendMsgSuccessJson(c.Conn, msg, nil)
-
-		//-------------------------------------------------
-		//w, err := c.Conn.NextWriter(websocket.TextMessage)
-		//if err != nil {
-		//	return
-		//}
-		//w.Write(message)
-		//// Add queued chat messages to the current websocket message.
-		//n := len(c.send)
-		//for i := 0; i < n; i++ {
-		//	w.Write(newline)
-		//	w.Write(<-c.send)
-		//}
-		//if err := w.Close(); err != nil {
-		//	return
-		//}
-		//-------------------------------------------------
+			c.Conn.SetWriteDeadline(time.Time{})
+			WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Binary)
+			////-------------------------------------------------
+			//w, err := c.Conn.NextWriter(websocket.TextMessage)
+			//if err != nil {
+			//	return
+			//}
+			//w.Write(message)
+			//// Add queued chat messages to the current websocket message.
+			//n := len(c.send)
+			//for i := 0; i < n; i++ {
+			//	w.Write(newline)
+			//	w.Write(<-c.send)
+			//}
+			//if err := w.Close(); err != nil {
+			//	return
+			//}
+			//-------------------------------------------------
 
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				TraceHeartbeatErrdLog(map[string]string{
-					"system_id": c.SystemId,
-					"client_id": c.ClientId,
-				}, nil, err.Error(), 3)
+				//TraceHeartbeatErrdLog(map[string]string{
+				//	"system_id": c.SystemId,
+				//	"client_id": c.ClientId,
+				//}, nil, err.Error(), 3)
 				return
 			}
 		}
@@ -137,8 +137,7 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		send:     make(chan []byte, 256),
 	}
 	client.hub.ClientRegister <- client
-
-	WriteSuccessJson(conn, map[string]string{"system_id": systemId, "client_id": client.ClientId}, nil)
+	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId}, nil, Binary)
 
 	// Allow collection of memory referenced by the caller by doing all work in
 	// new goroutines.

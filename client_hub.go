@@ -33,14 +33,15 @@ func (m *Hub) Run() {
 
 		case client := <-m.ClientUnregister:
 			m.handleClientUnregister(client)
+			close(client.send)
 
 		case message := <-m.Broadcast:
 			for client := range m.Clients {
 				select {
 				case client.send <- message:
 				default:
-					m.handleClientUnregister(client)
 					close(client.send)
+					m.handleClientUnregister(client)
 				}
 			}
 		}
