@@ -35,57 +35,63 @@ func init() {
 
 // ReadMessageHandler 将来自 websocket 连接的消息推送到集线器。
 func (c *Client) ReadMessageHandler() {
-	defer func() {
-		c.hub.ClientUnregister <- c
-		c.Conn.Close()
-	}()
+	if c.Conn != nil {
+		defer func() {
+			c.hub.ClientUnregister <- c
+			c.Conn.Close()
+		}()
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.Conn.SetPongHandler(func(appData string) error {
+		c.Conn.SetReadLimit(maxMessageSize)
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
-	for {
-		_, message, err := c.Conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				TraceClientCloseSuccessLog("", "", err.Error(), 4)
+		c.Conn.SetPongHandler(func(appData string) error {
+			c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
+		for {
+			_, message, err := c.Conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					TraceClientCloseSuccessLog("", "", err.Error(), 4)
+				}
+				break
 			}
-			break
+			message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
+			c.hub.Broadcast <- message
 		}
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		c.hub.Broadcast <- message
 	}
 }
 
 // WriteMessageHandler 将消息从集线器发送到 websocket 连接
 func (c *Client) WriteMessageHandler() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.Conn.Close()
-	}()
-
-	for {
-		select {
-		case message, ok := <-c.Send:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
+	if c.Conn != nil {
+		ticker := time.NewTicker(pingPeriod)
+		defer func() {
+			ticker.Stop()
+			if c.Conn != nil {
+				c.Conn.Close()
 			}
-			data := make(map[string]interface{}, 0)
-			if err := json.Unmarshal(message, &data); err != nil {
-				return
-			}
-			c.Conn.SetWriteDeadline(time.Time{})
-			WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Json)
+		}()
 
-		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
+		for {
+			select {
+			case message, ok := <-c.Send:
+				c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if !ok {
+					c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+					return
+				}
+				data := make(map[string]interface{}, 0)
+				if err := json.Unmarshal(message, &data); err != nil {
+					return
+				}
+				c.Conn.SetWriteDeadline(time.Time{})
+				WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Json)
+
+			case <-ticker.C:
+				c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
 			}
 		}
 	}
