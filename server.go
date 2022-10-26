@@ -91,7 +91,7 @@ func (c *Client) WriteMessageHandler() {
 	}
 }
 
-// WsServer handles websocket requests from the peer.
+// WsServer 处理websocket请求
 func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -115,8 +115,7 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error)
 	client.hub.ClientRegister <- client
 	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId}, nil, Binary)
 
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
+	//
 	go client.WriteMessageHandler()
 	go client.ReadMessageHandler()
 
