@@ -33,7 +33,7 @@ func main() {
 	go hub.Run()
 
 	// ws连接
-	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
+	http.HandleFunc("/shop", func(writer http.ResponseWriter, request *http.Request) {
 		_, err := go_websocket.WsServer(hub, writer, request)
 		if err != nil {
 			return
@@ -50,6 +50,22 @@ func main() {
 			return
 		}
 		hub.Broadcast <- []byte(data)
+		return
+	})
+
+	// 推送到群组
+	http.HandleFunc("/push_to_group", func(writer http.ResponseWriter, request *http.Request) {
+		systemId := request.FormValue("system_id")
+		groupId := request.FormValue("group_id")
+		data := request.FormValue("data")
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if systemId == "" || data == "" {
+			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
+			return
+		}
+		message := make(map[string][]byte)
+		message[groupId] = []byte(data)
+		hub.GroupBroadcast <- message
 		return
 	})
 	log.Println("服务启动成功。端口号 :9991")

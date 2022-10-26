@@ -80,7 +80,7 @@ func (c *Client) WriteMessageHandler() {
 				return
 			}
 			c.Conn.SetWriteDeadline(time.Time{})
-			WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Binary)
+			WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Json)
 
 		case <-ticker.C:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -98,6 +98,7 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error)
 		return nil, err
 	}
 	systemId := r.FormValue("system_id")
+	groupId := r.FormValue("group_id")
 	if systemId == "" {
 		sid, err := GetLocalIpToInt()
 		if err != nil {
@@ -107,13 +108,14 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error)
 	}
 	client := &Client{
 		SystemId: systemId,
+		GroupId:  groupId,
 		ClientId: GenerateUuid(Node),
 		hub:      hub,
 		Conn:     conn,
 		send:     make(chan []byte, 256),
 	}
 	client.hub.ClientRegister <- client
-	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId}, nil, Binary)
+	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}, nil, Json)
 
 	//
 	go client.WriteMessageHandler()
