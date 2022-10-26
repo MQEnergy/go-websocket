@@ -65,7 +65,7 @@ func main() {
 		}
 		message := make(map[string][]byte)
 		message[groupId] = []byte(data)
-		hub.GroupBroadcast <- message
+		hub.GroupBroadcastHandle(message)
 		return
 	})
 	log.Println("服务启动成功。端口号 :9991")

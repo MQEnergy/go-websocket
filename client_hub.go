@@ -39,33 +39,19 @@ func (m *Hub) Run() {
 
 		case client := <-m.ClientUnregister:
 			m.handleClientUnregister(client)
-			close(client.send)
+			close(client.Send)
 
 		case message := <-m.Broadcast:
 			for client := range m.Clients {
 				select {
-				case client.send <- message:
+				case client.Send <- message:
 				default:
-					close(client.send)
+					close(client.Send)
 					m.handleClientUnregister(client)
 				}
 			}
 		case groups := <-m.GroupBroadcast:
-			for gname, message := range groups {
-				clients, err := m.GetGroupClients(gname)
-				if err != nil {
-					m.RemoveGroup(gname)
-					break
-				}
-				for _, client := range clients {
-					select {
-					case client.send <- message:
-					default:
-						close(client.send)
-						m.handleClientUnregister(client)
-					}
-				}
-			}
+			m.GroupBroadcastHandle(groups)
 		}
 	}
 }
@@ -94,6 +80,25 @@ func (m *Hub) handleClientUnregister(client *Client) {
 		}
 	}
 	m.ClientLock.Unlock()
+}
+
+// GroupBroadcastHandle 群组消息通道处理
+func (m *Hub) GroupBroadcastHandle(groups map[string][]byte) {
+	for gname, message := range groups {
+		clients, err := m.GetGroupClients(gname)
+		if err != nil {
+			m.RemoveGroup(gname)
+			break
+		}
+		for _, client := range clients {
+			select {
+			case client.Send <- message:
+			default:
+				close(client.Send)
+				m.handleClientUnregister(client)
+			}
+		}
+	}
 }
 
 // SetClientToGroups 添加客户端到分组

@@ -69,7 +69,7 @@ func (c *Client) WriteMessageHandler() {
 
 	for {
 		select {
-		case message, ok := <-c.send:
+		case message, ok := <-c.Send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -112,7 +112,7 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error)
 		ClientId: GenerateUuid(Node),
 		hub:      hub,
 		Conn:     conn,
-		send:     make(chan []byte, 256),
+		Send:     make(chan []byte, 256),
 	}
 	client.hub.ClientRegister <- client
 	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}, nil, Json)

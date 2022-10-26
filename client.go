@@ -34,7 +34,7 @@ type Client struct {
 	GroupId  string `json:"group_id"`  // 群组id
 	SystemId string `json:"system_id"` // 系统ID 为分布式做准备的
 	Conn     *websocket.Conn
-	send     chan []byte
+	Send     chan []byte
 	hub      *Hub
 }
 
