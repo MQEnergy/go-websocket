@@ -42,7 +42,7 @@ go run examples/ws.go
 
 #### 1）连接ws并加群组
 system_id为系统ID（不必填 不填默认当前节点ip的int值）
-group_id为群组ID（不必填 不填连接不加群组）
+group_id为群组ID（不必填 不填连接不加群组 注意：群组id为全局唯一ID 不然可能会出现不同系统的相同群组都推送消息）
 
 请求
 ```
@@ -63,7 +63,7 @@ ws://127.0.0.1:9991/ws?system_id=123&group_id=test
 }
 ```
 
-#### 2）单个系统消息群发
+#### 2）全局广播消息群发
 请求
 ```
 http://127.0.0.1:9991/push_to_system?system_id=123&data={"hello":"world"}
@@ -75,7 +75,19 @@ http://127.0.0.1:9991/push_to_system?system_id=123&data={"hello":"world"}
 }
 ```
 
-#### 3）推送消息到群组
+#### 3）单个系统消息群发
+请求
+```
+http://127.0.0.1:9991/push_to_system?system_id=123&data={"hello":"world"}
+```
+返回
+```
+{
+    "msg": "系统消息发送成功",
+}
+```
+
+#### 4）推送消息到群组
 请求
 ```
 http://127.0.0.1:9991/push_to_group?system_id=123&group_id=test&data={"hello":"world1"}
@@ -84,5 +96,17 @@ http://127.0.0.1:9991/push_to_group?system_id=123&group_id=test&data={"hello":"w
 ```
 {
     "msg": "群组消息发送成功",
+}
+```
+
+#### 5）单个客户端消息发送
+请求
+```
+http://127.0.0.1:9991/push_to_client?client_id=123&data={"hello":"world"}
+```
+返回
+```
+{
+    "msg": "客户端消息发送成功",
 }
 ```

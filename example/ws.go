@@ -40,7 +40,20 @@ func main() {
 		}
 	})
 
-	// 推送到系统
+	// 推送到所有连接的客户端
+	http.HandleFunc("/push_to_all", func(writer http.ResponseWriter, request *http.Request) {
+		data := request.FormValue("data")
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if data == "" {
+			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
+			return
+		}
+		hub.Broadcast <- []byte(data)
+		writer.Write([]byte("{\"msg\":\"全局消息发送成功\"}"))
+		return
+	})
+
+	// 推送到所在系统的客户端
 	http.HandleFunc("/push_to_system", func(writer http.ResponseWriter, request *http.Request) {
 		systemId := request.FormValue("system_id")
 		data := request.FormValue("data")
@@ -49,27 +62,49 @@ func main() {
 			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
 			return
 		}
-		hub.Broadcast <- []byte(data)
+		hub.SystemBroadcast <- &go_websocket.BroadcastChan{
+			Name: systemId,
+			Msg:  []byte(data),
+		}
 		writer.Write([]byte("{\"msg\":\"系统消息发送成功\"}"))
 		return
 	})
 
 	// 推送到群组
 	http.HandleFunc("/push_to_group", func(writer http.ResponseWriter, request *http.Request) {
-		systemId := request.FormValue("system_id")
 		groupId := request.FormValue("group_id")
 		data := request.FormValue("data")
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-		if systemId == "" || data == "" {
+		if groupId == "" || data == "" {
 			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
 			return
 		}
-		message := make(map[string][]byte)
-		message[groupId] = []byte(data)
-		hub.GroupBroadcastHandle(message)
+		hub.GroupBroadcast <- &go_websocket.BroadcastChan{
+			Name: groupId,
+			Msg:  []byte(data),
+		}
+		//hub.GroupBroadcastHandle(groupId, []byte(data))
 		writer.Write([]byte("{\"msg\":\"群组消息发送成功\"}"))
 		return
 	})
+
+	// 推送到单个客户端
+	http.HandleFunc("/push_to_client", func(writer http.ResponseWriter, request *http.Request) {
+		clientId := request.FormValue("client_id")
+		data := request.FormValue("data")
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		if clientId == "" || data == "" {
+			writer.Write([]byte("{\"msg\":\"参数错误\"}"))
+			return
+		}
+		hub.ClientBroadcast <- &go_websocket.BroadcastChan{
+			Name: clientId,
+			Msg:  []byte(data),
+		}
+		writer.Write([]byte("{\"msg\":\"客户端消息发送成功\"}"))
+		return
+	})
+
 	log.Println("服务启动成功。端口号 :9991")
 	if err := http.ListenAndServe(":9991", nil); err != nil {
 		log.Println("ListenAndServe: ", err)
