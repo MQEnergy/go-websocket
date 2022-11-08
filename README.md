@@ -6,200 +6,83 @@
 [![codebeat badge](https://codebeat.co/badges/063ec0b6-5059-4b1b-92c0-4f750438faa8)](https://codebeat.co/projects/github-com-mqenergy-go-websocket-main)
 [![GitHub license](https://img.shields.io/github/license/MQEnergy/go-websocket)](https://github.com/MQEnergy/go-websocket/blob/main/LICENSE)
 
-## 目录结构
+## 一、目录结构
 ```
 ├── LICENSE
 ├── README.md
-├── client
-│   ├── client.go             // 客户端
-│   └── client_manager.go     // 客户端管理者
-├── connect.go                // websocket连接
-├── examples
-│   └── server.go             // 服务端案例
+├── client.go           // 客户端
+├── client_hub.go       // 客户端集线器
+├── code.go             // 状态码
+├── example             // 案例
+│   └── ws.go
 ├── go.mod
 ├── go.sum
-├── server
-│   └── server.go             // 服务端
-└── utils
-    ├── code
-    │   └── code.go           // 状态码
-    ├── log
-    │   └── log.go            // log
-    └── response
-        └── response.go       // websocket返回给客户端响应
+├── log.go              // 日志
+├── node.go             // 节点（用于在分布式系统生成基于节点的客户端连接ID）
+├── response.go         // 客户端发送消息
+└── server.go           // 服务
+
 ```
-## 在项目中安装使用
+## 二、在项目中安装使用
 ```go
 go get -u github.com/MQEnergy/go-websocket
 ```
-## 安装依赖
+## 三、运行example
+### 1、开启服务
 ```go
-go mod tidy
-```
-## 运行example
-### 一、开启服务
-```go
-go run examples/server.go
+go run examples/ws.go
 ```
 ```
 服务器启动成功，端口号 :9991 
 ```
 代表启动成功
 
-### 二、测试
-#### 1、连接websocket
-system_id为系统ID（测试随机填写）
+### 2、案例
+具体查看example目录
+
+#### 1）连接ws并加群组
+system_id为系统ID（不必填 不填默认当前节点ip的int值）
+group_id为群组ID（不必填 不填连接不加群组）
 
 请求
 ```
-ws://127.0.0.1:9991/ws?system_id=123
+ws://127.0.0.1:9991/ws?system_id=123&group_id=test
 ```
-返回
+可选多种返回方式 如： Text，Json，Binary（二进制方式）
+返回如下json示例：
 ```
 {
-    "system_id": "123",
-    "client_id": "1552131603575083008",
-    "message_id": "bmn18osnryryy",
-    "code": 10009,
-    "msg": "发送消息体成功",
-    "data": "{\"hello\":\"world1\"}",
+    "code": 0,
+    "msg": "客户端连接成功",
+    "data": {
+        "client_id": "1589962851152388096",
+        "group_id": "test",
+        "system_id": "123"
+    },
     "params": null
 }
 ```
 
-#### 2、推送单个客户端 
-请求 post
+#### 2）单个系统消息群发
+请求
 ```
-http://127.0.0.1:9991/push_to_client
-```
-请求参数
-```
-client_id:1552131603575083008
-system_id:123
-data:{"hello":"world1"}
+http://127.0.0.1:9991/push_to_system?system_id=123&data={"hello":"world"}
 ```
 返回
 ```
 {
-    "system_id": "123",
-    "client_id": "1552106203776028672",
-    "message_id": "bmn1pgxsyyryy",
-    "group_name": "",
-    "code": 10009,
-    "msg": "发送消息体成功",
-    "data": "{\"hello\":\"world1\"}"
+    "msg": "系统消息发送成功",
 }
 ```
 
-#### 3、推送多个客户端 
-请求 post
+#### 3）推送消息到群组
+请求
 ```
-http://127.0.0.1:9991/push_to_clients
-```
-请求参数
-```
-client_ids:["1552131603575083008","1552131575854927872"]
-system_id:123
-data:{"hello":"world1"}
-```
-返回
-```
-[
-    {
-        "system_id": "123",
-        "client_id": "1552131603575083008",
-        "message_id": "bmnwpcepyyryy",
-        "group_name": "",
-        "code": 10009,
-        "msg": "发送消息体成功",
-        "data": "{\"hello\":\"world1\"}"
-    },
-    {
-        "system_id": "123",
-        "client_id": "1552131575854927872",
-        "message_id": "bmnwpcepyyryb",
-        "group_name": "",
-        "code": 10009,
-        "msg": "发送消息体成功",
-        "data": "{\"hello\":\"world1\"}"
-    }
-]
-```
-
-#### 4、绑定到群组
-请求 post
-```
-http://127.0.0.1:9991/bind_to_group
-```
-请求参数
-```
-group_name:lyky
-client_id:1552484644530688000
-system_id:123
+http://127.0.0.1:9991/push_to_group?system_id=123&group_id=test&data={"hello":"world1"}
 ```
 返回
 ```
 {
-    "system_id": "123",
-    "client_id": "1552484655138082816",
-    "message_id": "bmnhes59ayryy",
-    "group_name": "lyky",
-    "code": 10012,
-    "msg": "客户端id：1552484644530688000 绑定群组成功",
-    "data": null
+    "msg": "群组消息发送成功",
 }
-```
-
-#### 5、推送到群组
-请求 post
-```
-http://127.0.0.1:9991/push_to_group
-```
-请求参数
-```
-system_id:123
-group_name:lyky
-data:{"hello":"world1111"}
-```
-返回
-```
-{
-    "system_id": "123",
-    "client_id": "1552484655138082816",
-    "message_id": "bmnhjrg8wyryy",
-    "group_name": "lyky",
-    "code": 10009,
-    "msg": "发送消息体成功",
-    "data": "{\"hello\":\"world1111\"}"
-}
-```
-
-## 其他
-### client_manager.go方法和函数
-```
-SetClientToList             添加客户端到列表
-SetSystemClientToList       添加系统ID和客户端到列表
-SetClientToGroupList        添加客户端到分组
-
-GetAllClient                获取所有的客户端
-GetAllClientCount           获取所有客户端数量
-GetClientByList             通过客户端列表获取*Client
-GetSystemClientList         获取指定系统的客户端列表
-GetGroupClientList          获取本地分组的成员
-
-RemoveAllClient             删除所有客户端 (包含 ClientList SystemClientList GroupList)
-RemoveGroupClient           删除分组里的客户端
-RemoveClientByList          从列表删除*Client
-RemoveSystemClientByList    删除系统里的客户端
-CloseClient                 关闭客户端 (发送关闭client到ClientDisConnect通道中)
-```
-### server.go函数
-```
-Run                         执行连接（断连，连接进行clientList的操作）
-PushToClientMsgChan         发送消息体到通道
-SendMessageToLocalGroup     以群组纬度统一发送消息
-SendMessageToLocalSystem    以系统纬度统一发送消息
-SendMessageToClient         发送消息给客户端
-MessagePushListener         监听并发送给客户端消息
-HeartbeatListener           心跳监听
 ```

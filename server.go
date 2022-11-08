@@ -62,7 +62,7 @@ func (c *Client) ReadMessageHandler() {
 }
 
 // WriteMessageHandler 将消息从集线器发送到 websocket 连接
-func (c *Client) WriteMessageHandler() {
+func (c *Client) WriteMessageHandler(msgtype MsgType) {
 	if c.Conn != nil {
 		ticker := time.NewTicker(pingPeriod)
 		defer func() {
@@ -85,7 +85,7 @@ func (c *Client) WriteMessageHandler() {
 					return
 				}
 				c.Conn.SetWriteDeadline(time.Time{})
-				WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, Json)
+				WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, msgtype)
 
 			case <-ticker.C:
 				c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -98,7 +98,7 @@ func (c *Client) WriteMessageHandler() {
 }
 
 // WsServer 处理websocket请求
-func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error) {
+func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request, msgtype MsgType) (*Client, error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return nil, err
@@ -121,10 +121,9 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request) (*Client, error)
 		Send:     make(chan []byte, 256),
 	}
 	client.hub.ClientRegister <- client
-	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}, nil, Json)
+	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}, nil, msgtype)
 
-	//
-	go client.WriteMessageHandler()
+	go client.WriteMessageHandler(msgtype)
 	go client.ReadMessageHandler()
 
 	return client, nil

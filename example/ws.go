@@ -33,8 +33,8 @@ func main() {
 	go hub.Run()
 
 	// ws连接
-	http.HandleFunc("/shop", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := go_websocket.WsServer(hub, writer, request)
+	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
+		_, err := go_websocket.WsServer(hub, writer, request, go_websocket.Binary)
 		if err != nil {
 			return
 		}
@@ -50,6 +50,7 @@ func main() {
 			return
 		}
 		hub.Broadcast <- []byte(data)
+		writer.Write([]byte("{\"msg\":\"系统消息发送成功\"}"))
 		return
 	})
 
@@ -66,6 +67,7 @@ func main() {
 		message := make(map[string][]byte)
 		message[groupId] = []byte(data)
 		hub.GroupBroadcastHandle(message)
+		writer.Write([]byte("{\"msg\":\"群组消息发送成功\"}"))
 		return
 	})
 	log.Println("服务启动成功。端口号 :9991")
