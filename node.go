@@ -1,32 +1,21 @@
 package go_websocket
 
 import (
+	"encoding/binary"
 	"errors"
 	"net"
-	"strconv"
-	"strings"
 )
 
 // convertToIntIP 转换ip为int
-func convertToIntIP(ip string) (int, error) {
-	ips := strings.Split(ip, ".")
-	E := errors.New("Not A IP.")
-	if len(ips) != 4 {
-		return 0, E
+func convertToIntIP(ip net.IP) uint32 {
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip[12:16])
 	}
-	var intIP int
-	for k, v := range ips {
-		i, err := strconv.Atoi(v)
-		if err != nil || i > 255 {
-			return 0, E
-		}
-		intIP = intIP | i<<uint(8*(3-k))
-	}
-	return intIP, nil
+	return binary.BigEndian.Uint32(ip)
 }
 
 // GetLocalIpToInt 获取本机IP转成int
-func GetLocalIpToInt() (int, error) {
+func GetLocalIpToInt() (uint32, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return 0, err
@@ -35,7 +24,7 @@ func GetLocalIpToInt() (int, error) {
 		// 检查ip地址判断是否回环地址
 		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 			if ipnet.IP.To4() != nil {
-				return convertToIntIP(ipnet.IP.String())
+				return convertToIntIP(ipnet.IP), nil
 			}
 		}
 	}

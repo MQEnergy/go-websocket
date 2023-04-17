@@ -110,7 +110,7 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request, msgtype MsgType)
 		if err != nil {
 			return nil, err
 		}
-		systemId = strconv.Itoa(sid)
+		systemId = strconv.Itoa(int(sid))
 	}
 	client := &Client{
 		SystemId: systemId,
