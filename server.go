@@ -56,7 +56,7 @@ func (c *Client) ReadMessageHandler() {
 				break
 			}
 			message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-			c.hub.Broadcast <- message
+			c.hub.ClientBroadcast <- &BroadcastChan{Name: c.ClientId, Msg: message}
 		}
 	}
 }
