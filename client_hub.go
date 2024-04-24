@@ -19,7 +19,7 @@ type Hub struct {
 	ClientUnregister chan *Client        // 客户端断开连接处理
 	ClientLock       sync.RWMutex        // 客户端列表读写锁
 	Broadcast        chan []byte         // 来自广播的入站消息
-	SystemBroadcast  chan *BroadcastChan // 来自群组的入站消息 {Name:"systemId", Msg:"msg"}
+	SystemBroadcast  chan *BroadcastChan // 来自系统的入站消息 {Name:"systemId", Msg:"msg"}
 	GroupBroadcast   chan *BroadcastChan // 来自群组的入站消息 {Name:"groupId", Msg:"msg"}
 	ClientBroadcast  chan *BroadcastChan // 来自客户端的入站消息 {Name:"clientId", Msg:"msg"}
 }
