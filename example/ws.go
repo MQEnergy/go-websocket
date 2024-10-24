@@ -34,7 +34,7 @@ func main() {
 
 	// ws连接
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
-		_, err := go_websocket.WsServer(hub, writer, request, go_websocket.Binary)
+		_, err := go_websocket.WsServer(hub, writer, request, go_websocket.Json)
 		if err != nil {
 			return
 		}

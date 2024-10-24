@@ -85,7 +85,7 @@ func (c *Client) WriteMessageHandler(msgtype MsgType) {
 					return
 				}
 				c.Conn.SetWriteDeadline(time.Time{})
-				WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, nil, msgtype)
+				WriteMessage(c.Conn, SendMsgSuccess, SendMsgSuccess.Msg(), data, data, msgtype)
 
 			case <-ticker.C:
 				c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -121,8 +121,15 @@ func WsServer(hub *Hub, w http.ResponseWriter, r *http.Request, msgtype MsgType)
 		send:     make(chan []byte, 256),
 	}
 	client.hub.ClientRegister <- client
-	WriteMessage(conn, Success, Success.Msg(), map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}, nil, msgtype)
 
+	// 连接成功返回消息
+	data := map[string]string{"system_id": systemId, "client_id": client.ClientId, "group_id": groupId}
+	params := map[string]interface{}{"type": "connected"}
+	if err := WriteMessage(conn, Success, Success.Msg(), data, params, msgtype); err != nil {
+		return nil, err
+	}
+
+	// 监听客户端发送的消息
 	go client.WriteMessageHandler(msgtype)
 	go client.ReadMessageHandler()
 
