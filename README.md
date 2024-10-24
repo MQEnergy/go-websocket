@@ -1,5 +1,5 @@
 # go-websocket
-基于gorilla/websocket封装的websocket库，实现基于系统纬度的消息推送，基于群组纬度的消息推送，基于单个和多个客户端消息推送。
+基于gorilla/websocket封装的websocket库，实现基于系统维度的消息推送，基于群组维度的消息推送，基于单个和多个客户端消息推送。
 
 [![GoDoc](https://godoc.org/github.com/MQEnergy/go-websocket/?status.svg)](https://pkg.go.dev/github.com/MQEnergy/go-websocket)
 [![Go Report Card](https://goreportcard.com/badge/github.com/MQEnergy/go-websocket)](https://goreportcard.com/report/github.com/MQEnergy/go-websocket)
